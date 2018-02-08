@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+
+{% block title %}
+domains
+{% endblock %}
+
+
+{% block content %}
+
+<div class="container">
+    <div class="row">
+        <div class="panel panel-success">
+            <div class="panel-heading">
+                <h3 class="panel-title text-center">domain-ip-info</h3>
+            </div>
+            <div class="panel-body">
+                <table class="table table-striped table-bordered table-hover table-condensed">
+                    <thead>
+                        <tr>
+                            <th> id </th>
+                            <th> domains</th>
+                            <th> vulnscan </th>
+                            <th> nmapscan </th>
+                            <th> action </th>
+                            <th> guesscms </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                    {% for obj in objs.object_list %}
+                    <tr>
+                        <td> {{obj.id}} </td>
+                        <td>{{obj.domain}} </td>
+                        <td><a href="/scandomain?id={{obj.id}}">vulnscan</a></td>
+                        <td><a href="/nmapscan?id={{obj.id}}">nmapscan</a></td>
+                        <td><a href="/updatehttptitle?id={{obj.id}}">updatehttptitle</a></td>
+                        <td><a href="/guesscms?id={{obj.id}}">guesscmstype</a></td>
+                    </tr>
+                    {% endfor %}
+
+                    </tbody>
+                </table>
+
+
+            </div>
+        </div>
+
+
+    <div class="panel panel-default">
+        <div class="panel-body">
+        <ul class="pager">
+            {% if ipobjs.has_previous %}
+              <li class="previous"> <a href="?page={{ ipobjs.previous_page_number }}">Previous</a></li>
+            {% else %}
+            <li class="previous disabled"><a href="#">&larr; Older</a></li>
+            {% endif %}
+
+
+              Page {{ ipobjs.number }} of {{ ipobjs.paginator.num_pages }}.
+
+            {% if ipobjs.has_next %}
+             <li class="next"> <a href="?page={{ ipobjs.next_page_number }}">Next</a> </li>
+            {% endif %}
+        </ul>
+        </div>
+    </div>
+
+
+       
+
+    </div>
+</div>
+
+
+
+<!--     <a href="/scandevice/create"> go to create one task </a><br>
+    <br>
+    <a href="/scandevice/showstatus">showstatus</a>
+ -->
+{% endblock %}
+
+
+
+
+
+

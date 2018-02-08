@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"> 
+    <link rel="stylesheet" href="http://cdn.static.runoob.com/libs/bootstrap/3.3.7/css/bootstrap.min.css">  
+    <script src="http://cdn.static.runoob.com/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script src="http://cdn.static.runoob.com/libs/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<!-- <script>
+   //Click on any li in ul with class 'navbar-nav'
+$(document).ready(function() {
+  $('li.active').removeClass('active');
+  $('a[href="' + location.pathname + '"]').closest('li').addClass('active'); 
+});
+</script> -->
+</style>
+
+<body>
+<title>{% block title %}base html{% endblock %}</title>
+<nav class="navbar navbar-default navbar-static-top" role="navigation">
+    <div class="container-fluid">
+    <div class="navbar-header">
+        <a class="navbar-brand" href="#">scan navigate</a>
+    </div>
+    <div>
+        <ul class="nav navbar-nav">
+            <li class="dropdown">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                    vulnerabilities
+                    <b class="caret"></b>
+                </a>
+                <ul class="dropdown-menu">
+                    <li><a href="/scandevice/vulnshow?vuln=xss"><p class="text-info">XSS</p></a></li>
+                    <li><a href="/scandevice/vulnshow?vuln=sqli"><p class="text-info">SQLI</p></a></li>
+                    <li><a href="/scandevice/vulnshow?vuln=wp"><p class="text-info">Weak Password</p></a></li>
+                    <li><a href="/scandevice/vulnshow?vuln=ra"><p class="text-info">Reply Attack</p></a></li>
+                    <li><a href="/scandevice/vulnshow?vuln=sfl"><p class="text-info">敏感信息泄漏</p></a></li>
+                    <li><a href="/scandevice/vulnshow?vuln=misconfigure"><p class="text-info">misconfigure</p></a></li>
+
+                    
+                    <!-- 敏感信息泄漏 -->
+<!--                     <li class="divider"></li>
+                    <li><a href="#">分离的链接</a></li>
+                    <li class="divider"></li>
+                    <li><a href="#">另一个分离的链接</a></li> -->
+                </ul>
+            </li>
+            <li class="active"><a href="/create/">create</a></li>
+            <li><a href="/showdomainip/">showdomainip</a></li>
+            <li><a href="/domains/">domains</a></li>
+            <li><a href="/showvulns">showvulns</a></li>
+            <li><a href="/scandevice/showresult">showresults</a></li>
+
+        </ul>
+        <ul class="nav navbar-nav navbar-right">
+            <!-- <li><a href="#">register</a></li> -->
+            <li><a href="/login/">{%if user.is_authenticated%} {{user.username}} {%else%} login {%endif%}</a></li>
+            <li><a href="/logout/">logout</a></li>
+            
+        </ul>
+    </div>
+    </div>
+</nav>
+
+{% block content %}
+
+{% endblock %}
+<nav class="navbar navbar-default navbar-fixed-bottom" role="navigation">
+    <div class="container-fluid">
+    <p class="text-center"> &copy; bupt  </p>
+    </div>
+</nav>
+
+    
+</body>
+</html>

@@ -18,7 +18,7 @@ from django.core.files.base import ContentFile
 from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import reverse
 from django.core.paginator import Paginator
-from tasks import task_masscan, nmap_scan, get_title, sensitivescan, pocverify
+from tasks import task_masscan, nmap_scan, get_title, sensitivescan, pocverify, CMSGuess
 from models import *
 from commons import *
 
@@ -306,8 +306,13 @@ def guesscms(request):
     id_domain = int(request.GET['id'])
     # first get the subdomains
     subdomainobjs = Subdomains.objects.filter(id_domain=id_domain).filter(cmstype__isnull=True)
-    for s in subdomainobjs[:5]:
+    for s in subdomainobjs:
         CMSGuess.delay(s.subdomain, s.id, isip=False)
 
+    ipobjs = PortTable.objects.filter(id_domain=id_domain).filter(cmstype__isnull=True)
+    for ipobj in ipobjs:
+        # join ip from ipobj.ip, ipobj.port
+        _ = '{}:{}'.format(ipobj.ip, ipobj.port)
+        CMSGuess.delay(_, ipobj.id, isip=True)
     return HttpResponse(len(subdomainobjs))
 

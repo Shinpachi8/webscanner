@@ -1,6 +1,7 @@
 /core
 /crossdomain.xml
 /debug.txt
+/.env
 /.bash_history
 /.rediscli_history
 /.bashrc

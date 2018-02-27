@@ -1,7 +1,7 @@
 # coding:utf-8
 import re
 import urllib2
-from config import is_port_open
+from config import is_port_open, is_http
 
 
 @is_port_open

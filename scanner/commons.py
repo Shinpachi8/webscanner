@@ -5,7 +5,10 @@ import re
 import threading
 import nmap
 import subprocess
+import gevent
+import hashlib
 import socket
+import json
 import os
 import requests
 import time
@@ -611,7 +614,7 @@ class InfoLeakScan():
     def __init__(self, url):
         self.scheme, self.netloc, self.path = self.parse_url(url)
         self.url = self.scheme + "://" + self.netloc + "/"
-        self.checkset = self.load_files("/root/webscanner/scanner/util/info.txt", self.url)
+        self.checkset = self.load_files("./scanner/util/info.txt", self.url)
         self.result = Queue()
         self.has401 = False
         self.access_length_set = set()
@@ -835,11 +838,12 @@ def save_vuln_to_db(id_domain, url, vuln_name, **param):
 
 
 class cmsIdentificate(object):
-    def __init__(self,tgtUrl):
+    def __init__(self,tgtUrl, isip=False):
         self.tgtUrl = tgtUrl.rstrip("/")
         self.header = {'User-Agent':'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; Maxthon 2.0)'}
         self.found = 0
         self.cmstype = ''
+        self.isip = isip
 
     def getMd5(self,rspfile):
         md5 = hashlib.md5()
@@ -855,7 +859,10 @@ class cmsIdentificate(object):
         if self.cmstype:
             cmstype = self.cmstype
         else:
-            cmstype = 'www'
+            if self.isip:
+                cmstype = 'ip'
+            else:
+                cmstype = 'www'
         return cmstype
 
 
@@ -865,10 +872,16 @@ class cmsIdentificate(object):
             cmsjson = self.cms0Queue.get()
             #print 'checking ' + self.tgtUrl + cmsjson["url"]
             finalUrl = self.tgtUrl + cmsjson["url"]
+            if finalUrl.find('http') > -1:
+                pass
+            else:
+                finalUrl = 'http://' + finalUrl
+
+            #print 'checking ' + finalUrl
             rsphtml = ''
             try:
 
-                rsp = requests.get(finalUrl,headers=self.header,timeout=10)
+                rsp = requests.get(finalUrl,headers=self.header,timeout=10, verify=False)
                 if (rsp.status_code != 200):
                     continue
                     #return
@@ -900,8 +913,20 @@ class cmsIdentificate(object):
 
     def cmsScan(self, threadnum=100):
         #cms0init()
+        if self.isip:
+            ip, port = self.tgtUrl.split(':')
+           # if not is_http(ip, port):
+
+            if is_http(ip, port) != 'http':
+                return
+            else:
+                if port in ['443', '8443']:
+                    self.tgtUrl = 'https://' + self.tgtUrl
+                else:
+                    self.tgtUrl = 'http://' + self.tgtUrl
+
         self.cms0Queue = Queue()
-        fp0 = open('data.json')
+        fp0 = open('./scanner/util/data.json')
         cmsData = json.load(fp0, encoding="utf-8")
         for i in cmsData:
             self.cms0Queue.put(i)
@@ -929,7 +954,7 @@ def update_cmstype_to_database(cmstype, objid, isip=False):
 
 
 def cms_guess(url, objid, isip=False):
-    a = cmsIdentificate(url)
+    a = cmsIdentificate(url, isip)
     a.cmsScan(200)
     cmstype = a.getcmstype()
     update_cmstype_to_database(cmstype, objid, isip)

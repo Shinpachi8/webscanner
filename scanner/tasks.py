@@ -102,7 +102,7 @@ def sensitivescan(url, id_domain):
 
 
 
-@shared_task
+@shared_task(time_limit=200)
 def pocverify(target, id_domain, iscidr=False):
     """
     this is aim to use script to scan th ip address to detect
@@ -136,7 +136,7 @@ def pocverify(target, id_domain, iscidr=False):
                 save_vuln_to_db(id_domain, url, vuln_name, **result)
 
 
-@shared_task
+@shared_task(time_limit=600)
 def get_title(portobjlist):
     """
     the celery task deal the http title task
@@ -147,9 +147,22 @@ def get_title(portobjlist):
 
 
 
-@shared_task
-def CMSGuess(objs, objid, isip=False):
-    cms_guess(objs, objid, isip)
+@shared_task(time_limit=600)
+def CMSGuess(id_domain, isip):
+    urlqueue = Queue()
+    if isip:
+        objs = PortTable.objects.filter(id_domain=id_domain).filter(cmstype__isnull=True)
+        for o in objs:
+            #if is_http(o.ip, o.port) == 'http':
+            _x = ('{}:{}'.format(o.ip, o.port), o.id, isip)
+            urlqueue.put(_x)
+
+    else:
+        urlobjs = Subdomains.objects.filter(id_domain=id_domain).filter(cmstype__isnull=True)
+        for o in urlobjs:
+            _x = (o.subdomain, o.id, isip)
+            urlqueue.put(_x)
+    cms_guess(urlqueue)
 
 
 

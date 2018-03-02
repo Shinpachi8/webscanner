@@ -13,22 +13,14 @@ import os
 import requests
 import time
 import glob
-import sys
-import logging
 import urlparse
 import importlib
 import urllib2
 from bs4 import BeautifulSoup as bs
 from Queue import Queue
-from dummy import *
 from scanner.models import *
 from config import *
 
-reload(sys)
-sys.setdefaultencoding('utf-8')
-
-socket.setdefaulttimeout(20)
-here = os.path.split(os.path.abspath(__file__))[0]
 requests.packages.urllib3.disable_warnings()
 
 def parse_file(lines):
@@ -135,7 +127,6 @@ def masscan_scan(scanqueue, resultqueue):
     :param: resultqueue, the queue which contains the xml infomations
     # :rtype: resultqueue, which is contains result of scan
     """
-
     # resultqueue = Queue()
     while not scanqueue.empty():
         try:
@@ -262,8 +253,7 @@ def nmapscan(ipportqueue, id_domain, arguments=None):
                 scan_result = scan_result.split(";")
                 logger.info("[common] [nmap_scan] scan_result: {}".format(scan_result))
                 if (not len(scan_result)== 13) or (scan_result[6] != "open"):
-                    PortTable.objects.filter(ip=host).filter(port=port).filter(id_domain=id_domain).delete()
-                    #continue
+                    continue
                 else:
                     ip = scan_result[0]
                     port = scan_result[4]
@@ -532,69 +522,30 @@ def _pocscan_work(scriptqueue, resultqueue, ip, port=None, name=None):
     """
     while not scriptqueue.empty():
         function = scriptqueue.get()
-        result = []
+        result = None
         # print "[_pocscan_work] [function={}]".format(function)
         if hasattr(function, "verify"):
-            continue
             # this is ourself script
             try:
                 func = getattr(function, "verify")
                 if port is None:
-                    _r = func(ip)
-                    if _r:
-                        result.append(_r)
+                    result = func(ip)
                 else:
-                    _r = func(ip, port, name)
-                    if _r:
-                        result.append(_r)
-
+                    result = func(ip, port, name)
             except Exception as e:
                 logger.error("[pocscan_work] [fun={}] [reason={}]".format(function, repr(e)))
-                #result = None
+                result = None
         elif hasattr(function, "audit"):
             # this is bugscan function
             #port = port if port else 80
             #cmstype = 'www'
             #if is_ip(ip) and is_http(ip, port):
             #    cmstype = cms_guess('http://{}:{}'.format(ip, port))
-            try:
-                audit = getattr(function, 'audit')
-                assign = getattr(function, 'assign')
-            except Exception as e:
-                logger.error('[pocscan_work] may function={} has not found the audit/assgin, error={}'.format(function, repr(e)))
-                continue
-            portobj = PortTable.objects.filter(ip=ip).filter(port=port)
-            for obj in portobj:
-                try:
-                    if obj.cmstype:
-                        # if the obj.cmstype exist. which means that we use the ip:port to make the request
-                        cmstype = json.loads(obj.cmstype)
-                        _u = 'http://{}:{}'.format(obj.ip, obj.port)
-                        for cms in cmstype:
-                            #logger.info('the cms is = {}'.format(cms))
-                            cms = cms.encode('utf-8')
-                            logger.info('type[cms] = {}'.format(type(cms)))
-                            _r = audit(assign(cms, _u)[1])
-                            if _r:
-                                result.append(_r)
-                            #logger.info("if no assign, to see is error happend")
-                    else:
-                        continue
-                        # if not exist the obj.cmstype, means not http service
-                        # that we use the ip and the name to audit
-                        _r = audit(assign('ip', obj.ip))
-                        if _r:
-                            result.append(_r)
-                        _r = audit(assign(obj.name, obj.ip))
-                        if _r:
-                            result.append(_r)
-                except Exception as e:
-                    logger.error('[pocscan_work] [Error= {}]'.format(repr(e)))
 
 
+            pass
 
-
-        for _r in  result:
+        if result:
             resultqueue.put(result)
 
 
@@ -836,6 +787,14 @@ class InfoLeakScan():
                     if is_http(tip, tport) != 'http':
                         # if is ip and not http service, return
                         print "[{}:{}] is not http service".format(tip, tport)
+                        return
+            self.lenth_404_page = self.get_404()
+            all_threads = []
+            for i in xrange(threads):
+                t = threading.Thread(target=self._scan_work)
+                t.start()
+                all_threads.append(t)
+
             for thread in all_threads:
                 thread.join()
         except Exception as e:
@@ -877,231 +836,105 @@ def save_vuln_to_db(id_domain, url, vuln_name, **param):
 
 
 
-def format_url(url):
-    try:
-        s = url.find('://')
-        if s < 0:
-            url = "http://" + url
-        if url.count('/') == 2:
-            url += '/'
-        return url
-    except Exception as e:
-        logger.error('[format_url] Exception %s' % str(e))
-        return None
 
+class cmsIdentificate(object):
+    def __init__(self,tgtUrl, isip=False):
+        self.tgtUrl = tgtUrl.rstrip("/")
+        self.header = {'User-Agent':'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; Maxthon 2.0)'}
+        self.found = 0
+        self.cmstype = ''
+        self.isip = isip
 
+    def getMd5(self,rspfile):
+        md5 = hashlib.md5()
+        md5.update(rspfile)
+        return md5.hexdigest()
 
-class Condition(object):
-    def __init__(self, feature=None):
-        self.feature = None
-        self.url = None
-        self.cms_name = None
-        self.separate_chars = '||||'
-        self.parsed_list = []
-        self.parse(feature)
+    def clearQueue(self):
+        while not self.cms0Queue.empty():
+            self.cms0Queue.get()
 
-    def get_url(self):
-        return self.url
-
-    def _parse_inner(self, con):
-        try:
-            fmt = {
-                "header": [],
-                "body": [],
-                "title": []
-            }
-            t_list = con.split('&&')
-            for t in t_list:
-                t = t.strip('() ')
-                s = t.find('=')
-                if s < 0:
-                    logger.error('[_parse_inner] Error format %s' % t)
-                    continue
-                k = str(t[:s].strip()).lower()
-                v = t[s + 1:].strip('" ()').replace('\\', '')
-                if k.endswith('!'):
-                    prefix = '^'
-                    k = k[0:k.find('!')]
-                else:
-                    prefix = ''
-                if k == 'header' or k == 'body' or k == 'title':
-                    fmt[k].append(prefix + v)
-                else:
-                    logger.error('[_parse_inner] unknown key %s in %s' % (k, con))
-            return fmt
-        except Exception as e:
-            logger.error('[_parse_inner] Exception %s when parsing %s' % (e, con))
-
-    def parse(self, feature):
-        try:
-            if not feature:
-                return
-            self.feature = feature.strip()
-            p = self.feature.split(self.separate_chars)
-            if not p or len(p) < 3:
-                logger.error('Fail to parse feature: %s' % feature)
-                return
-            self.cms_name = p[1]
-            if len(p) == 3:
-                self.url = '/'
-                feature = p[2]
+    def getcmstype(self):
+        cmstype = ''
+        if self.cmstype:
+            cmstype = self.cmstype
+        else:
+            if self.isip:
+                cmstype = 'ip'
             else:
-                self.url = p[2]
-                feature = p[3]
-            if not feature:
-                logger.error('Condition is empty: %s' % self.feature)
-                return
-            c_list = feature.split('||')
-            for c in c_list:
-                c = c.strip("() ")
-                if not c:
-                    continue
-                r = self._parse_inner(c)
-                if r:
-                    self.parsed_list.append(r)
-            return True
-        except Exception as e:
-            logger.error('Exception %s when parsing %s' % (e, self.feature))
+                cmstype = 'www'
+        return cmstype
 
 
-class KeyItem(object):
-    def __init__(self, url):
-        self.url = url
-        self.condition_list = []
+    def cmsScan0(self):
+        while not self.cms0Queue.empty():
 
-
-class ConditionSet(object):
-    def __init__(self):
-        self.key_item_list = []
-
-    def find_item(self, url, auto_add=True):
-        for t in self.key_item_list:
-            if t.url == url:
-                return t
-        if auto_add:
-            return self.add_item(url)
-
-    def add_item(self, url):
-        _t = KeyItem(url)
-        self.key_item_list.append(_t)
-        return _t
-
-    def add_condition(self, con):
-        t = self.find_item(con.url)
-        if t:
-            t.condition_list.append(con)
-
-
-class CMSRecognize2(object):
-    def __init__(self):
-        self.is_web = False
-        self.match_detail = None
-        self.condition_set = ConditionSet()
-        self.init_dict = False
-
-    def _load_dict(self):
-        dic_path = "%s/util/cms_data.list" % here
-
-        count = 0
-        #dic_path = "%s/util/cms_data.list" % here
-        fd = open(dic_path)
-        for line in fd:
-            line = line.strip(" \r\n")
-            if not line or line.startswith('#'):
-                continue
-            p = Condition()
-            if p.parse(line):
-                self.condition_set.add_condition(p)
-                count += 1
+            cmsjson = self.cms0Queue.get()
+            #print 'checking ' + self.tgtUrl + cmsjson["url"]
+            finalUrl = self.tgtUrl + cmsjson["url"]
+            if finalUrl.find('http') > -1:
+                pass
             else:
-                logger.error('[CMSRecognize2] Fail to load %s' % line)
-        fd.close()
-        logger.info("%s features loaded." % count)
+                finalUrl = 'http://' + finalUrl
 
-    def _contain_keywords(self, content, keyword_list):
-        if not content or not keyword_list:
-            return
-        if not isinstance(keyword_list, tuple) and not isinstance(keyword_list, list):
-            keyword_list = [keyword_list]
-        for k in keyword_list:
-            if k.startswith('^'):
-                k = k[1:]
-                if content.find(k) >= 0:
-                    return False
-            elif content.find(k) < 0:
-                return False
-        return True
+            #print 'checking ' + finalUrl
+            rsphtml = ''
+            try:
 
-    def _parse_cms(self, code, header, body, _key_item, cms_list):
-        for con in _key_item.condition_list:
-            if cms_list.count(con.cms_name) > 0:
-                continue
-            for p in con.parsed_list:
-                if self._contain_keywords(header, p['header']) or self._contain_keywords(body, p['body']) or \
-                        self._contain_keywords(body, p['title']):
-                    if cms_list.count(con.cms_name) == 0:
-                        cms_list.append(con.cms_name)
-                    break
-
-        return cms_list
-
-    def recognize_cms(self, web_host):
-        try:
-            if not self.init_dict:
-                self.init_dict = True
-                self._load_dict()
-
-            count = 0
-            err_count = 0
-            is_web = False
-            normal_url = format_url(web_host)
-            if normal_url is None:
-                return None
-            cms_name = []
-            #print "the length of self.condition_set is {}".format(len(self.condition_set.key_item_list))
-            for _key_item in self.condition_set.key_item_list:
-                req_url = normal_url.rstrip("/") + _key_item.url
-                logger.info("[CMSRecognize2] [recognize_cms] [req_url= {}   ]".format(req_url))
-                code, header, body, err, _ = hackhttp.http(req_url)
-                if code >= 100:
-                    is_web = True
-                if code <= 0 or err != 0:
-                    err_count += 1
-                if err_count >= 2 and not is_web:
-                    return
-                if code != 200:
+                rsp = requests.get(finalUrl,headers=self.header,timeout=10, verify=False)
+                if (rsp.status_code != 200):
                     continue
-                self._parse_cms(code, header, body, _key_item, cms_name)
-            if is_web:
-                cms_name.append('www')
-            return cms_name if cms_name else None
-        except Exception as e:
-            logger.error('%s when recognize %s' % (e, web_host))
+                    #return
+                rsphtml = rsp.text
+                if rsphtml is None:
+                    continue
+                    #return
+            except:
+                rsphtml = ''
+
+            if cmsjson["re"]:
+                #print cmsjson["re"]
+                if (rsphtml.find(cmsjson["re"]) != -1):
+                    result = cmsjson["name"]
+                    self.cmstype = result
+                    #print("target's cms is : %s source: %s keyword : %s" % (result, finalUrl, cmsjson["re"]))
+                    self.clearQueue()
+                    return True
+                    #sys.exit(0)
+            else:
+                md5 = self.getMd5(rsphtml)
+                if (md5 == cmsjson["md5"]):
+                    result = cmsjson["name"]
+                    self.cmstype = result
+                    #print("target's cms is : %s |source : %s |md5 : %s" % (result, finalUrl, cmsjson["md5"]))
+                    self.clearQueue()
+                    return True
 
 
+    def cmsScan(self, threadnum=100):
+        #cms0init()
+        if self.isip:
+            ip, port = self.tgtUrl.split(':')
+           # if not is_http(ip, port):
 
-class CMSGuessThread(threading.Thread):
-    def __init__(self, urlqueue):
-        threading.Thread.__init__(self)
-        self.urlqueue = urlqueue
-        self.p = CMSRecognize2()
+            if is_http(ip, port) != 'http':
+                return
+            else:
+                if port in ['443', '8443']:
+                    self.tgtUrl = 'https://' + self.tgtUrl
+                else:
+                    self.tgtUrl = 'http://' + self.tgtUrl
 
-    def guess_cms(self):
-        while True:
-            if self.urlqueue.empty():
-                break
-            url, objid, isip = self.urlqueue.get(timeout=2)
-            cmstype = self.p.recognize_cms(url)
-            logger.info( "[CMSGuessThread] [guess_cms] [cmstype={}]".format(cmstype))
-            if cmstype:
-                cmstype = json.dumps(cmstype)
-                update_cmstype_to_database(cmstype, objid, isip)
+        self.cms0Queue = Queue()
+        fp0 = open('./scanner/util/data.json')
+        cmsData = json.load(fp0, encoding="utf-8")
+        for i in cmsData:
+            self.cms0Queue.put(i)
+        fp0.close()
 
-    def run(self):
-        self.guess_cms()
-
-
-
+        corlist0 = [gevent.spawn(self.cmsScan0) for i in range(threadnum)]
+        gevent.joinall(corlist0)
+        print 'Over!'
 
 def update_cmstype_to_database(cmstype, objid, isip=False):
     """
@@ -1120,26 +953,12 @@ def update_cmstype_to_database(cmstype, objid, isip=False):
         subdomainobj.save()
 
 
-def cms_guess(urlqueue, threadnum=10):
-    """
-    this function aim to detect the cms type of one web site
-    :param: urlqueue  which contains (url, objid, isip)
-    :param: threadnum, the thread number to exec
-    :rtype: None
-    """
-    threads = []
-    for t in xrange(threadnum):
-        _x = CMSGuessThread(urlqueue)
-        threads.append(_x)
-
-    for t in threads:
-        t.start()
-
-    for t in threads:
-        t.join()
-
-
-
+def cms_guess(url, objid, isip=False):
+    a = cmsIdentificate(url, isip)
+    a.cmsScan(200)
+    cmstype = a.getcmstype()
+    update_cmstype_to_database(cmstype, objid, isip)
+    return cmstype
 
 if __name__ == '__main__':
     # task_masscan("127.0.0.1/26")

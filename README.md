@@ -8,3 +8,9 @@ so if you want to use it, plz wait it..
 2. start celery:    celery -A webscanner worker -l info --time-limit 200
 3. start django:    python manager.py runserver 0.0.0.0:8000
 4. start flower:    flower --address=0.0.0.0:5555
+
+
+
+
+1. cms 识别可以先以domain_id为单位，传进去list, 
+    现在可以解析了，但是只能解析出www类型来，不知道哪里出错了。

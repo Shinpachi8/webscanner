@@ -162,7 +162,7 @@ def scandomain(request):
     # use infoleak to scan the info
     subdomains = Subdomains.objects.filter(id_domain=id_domain)
     for s in subdomains:
-        sensitivescan.delay(s.subdomain, id_domain)
+        #sensitivescan.delay(s.subdomain, id_domain)
         print "[view] [scandomain] [line160] http={}".format(s.subdomain)
         #sensitivescan.delay(s, id_domain)
 
@@ -180,7 +180,7 @@ def scandomain(request):
             h = "http://{}:{}".format(ip, port)
             httplist.append(h)
 
-    for obj in portobjs:
+    for obj in portobjs[:200]:
         ip, port, name = obj
         target = (ip, port, name)
         pocverify.delay(target, id_domain)
@@ -195,8 +195,8 @@ def scandomain(request):
     # # use infoleak to scan the http service
     for http in httplist:
     #     # print "[view] [scandomain] [line182] http={}".format(http)
-        sensitivescan.delay(http, id_domain)
-        # pass
+        #sensitivescan.delay(http, id_domain)
+        pass
 
     return redirect("/")
     # return HttpResponse("httplist={}\nip_cidr={}".format(httplist, ip_cidr))
@@ -305,14 +305,18 @@ def guesscms(request):
         return redirect("/")
     id_domain = int(request.GET['id'])
     # first get the subdomains
-    subdomainobjs = Subdomains.objects.filter(id_domain=id_domain).filter(cmstype__isnull=True)
-    for s in subdomainobjs:
-        CMSGuess.delay(s.subdomain, s.id, isip=False)
+    #subdomainobjs = Subdomains.objects.filter(id_domain=id_domain).filter(cmstype__isnull=True)
+    # update 18-03-01
+    #subdomainobjs = list(subdomainobjs)
+    CMSGuess.delay(id_domain, False)
+    CMSGuess.delay(id_domain, True)
+    #for s in subdomainobjs:
+    #    CMSGuess.delay(s.subdomain, s.id, isip=False)
 
-    ipobjs = PortTable.objects.filter(id_domain=id_domain).filter(cmstype__isnull=True)
-    for ipobj in ipobjs:
+    #ipobjs = PortTable.objects.filter(id_domain=id_domain).filter(cmstype__isnull=True)
+    #for ipobj in ipobjs:
         # join ip from ipobj.ip, ipobj.port
-        _ = '{}:{}'.format(ipobj.ip, ipobj.port)
-        CMSGuess.delay(_, ipobj.id, isip=True)
-    return HttpResponse(len(subdomainobjs))
+    #    _ = '{}:{}'.format(ipobj.ip, ipobj.port)
+    #    CMSGuess.delay(_, ipobj.id, isip=True)
+    return HttpResponse('alright, we finally got it')
 

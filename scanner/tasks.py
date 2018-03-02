@@ -103,38 +103,18 @@ def sensitivescan(url, id_domain):
 
 
 @shared_task(time_limit=200)
-def pocverify(target, id_domain, iscidr=False):
+def pocverify(id_domain):
     """
     this is aim to use script to scan th ip address to detect
     like unauth or ms17_10 vulnerability
     :param: ipcidr like 127.0.0.1/24
     :rtype: None
     """
-    if iscidr:
-        ips = netaddr.IPNetwork(target)
-        for ip in ips:
-            ip = str(ip)
-            resultqueue = pocscan(ip)
-
-            while not resultqueue.empty():
-                result = resultqueue.get()
-                print "[POCVERIFY] [WOOW] [VULN= {}]".format(result)
-                url = result["url"] if "url" in result else ""
-                vuln_name = result["vuln_name"] if "vuln_name" in result else "",
-                if url:
-                    save_vuln_to_db(id_domain, url, vuln_name, **result)
-
-    else:
-        ip, port, name = target
-        resultqueue = pocscan(ip, port, name)
-
-        while not resultqueue.empty():
-            result = resultqueue.get()
-            url = result["url"] if "url" in result else ""
-            vuln_name = result["vuln_name"] if "vuln_name" in result else "",
-            if url:
-                save_vuln_to_db(id_domain, url, vuln_name, **result)
-
+    portobjs = PortTable.objects.filter(id_domain=id_domain).values_list('ip', 'port', 'name', 'cmstype')
+    urlqueue = Queue()
+    for obj in portobjs[:200]:
+        urlqueue.put(obj)
+    pocscan(urlqueue)
 
 @shared_task(time_limit=600)
 def get_title(portobjlist):

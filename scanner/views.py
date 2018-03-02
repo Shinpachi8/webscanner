@@ -180,10 +180,7 @@ def scandomain(request):
             h = "http://{}:{}".format(ip, port)
             httplist.append(h)
 
-    for obj in portobjs[:200]:
-        ip, port, name = obj
-        target = (ip, port, name)
-        pocverify.delay(target, id_domain)
+    pocverify.delay(id_domain)
 
 
     # iplist = list(iplist)

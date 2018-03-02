@@ -498,136 +498,102 @@ def update_httptitle_to_database(portobjid, title):
         logger.error("[update_httptitle_to_database] [reason={}]".format(repr(e)))
 
 
-def loadscript():
-    """
-    this function load the script from util/script/poc*.py
-    and return the list
-    """
-    # print "[loadscript] [inhere...] [{}]".format(os.path.realpath(__file__))
-    # print os.system("pwd")
-    pyfiles = glob.glob("scanner/util/script/poc*.py")
-    pyfiles = [i[:-3] for i in pyfiles]
-    pyfiles = [i.replace("/", ".") for i in pyfiles]
-    # print pyfiles
-    scripts = [importlib.import_module(i) for i in pyfiles]
-    # print scripts
-    functions = [1 if hasattr(s, "verify") else 0 for s in scripts]
-    print "total {} script, total {} verify".format(len(scripts), sum(functions))
-    scriptqueue = Queue()
-    for s in scripts:
-        # if hasattr(s, "verify"):
-        scriptqueue.put(s)
+class PocPlugin(object):
+    def __init__(self, urlqueue):
+        super(PocPlugin, self).__init__()
+        self.urlqueue = urlqueue
+        self.scanfuncs = []
+        self.verifyfuncs = []
+        self.loadscript()
+        logger.info("verifyfuncs has {} script and bugscan has {} scripts".format(len(self.verifyfuncs), len(self.scanfuncs)))
 
-    return scriptqueue
+    def loadscript(self):
+        """
+        this function load the script from util/script/poc*.py
+        and return the list
+        """
+        # print "[loadscript] [inhere...] [{}]".format(os.path.realpath(__file__))
+        # print os.system("pwd")
+        pyfiles = glob.glob("scanner/util/script/poc*.py")
+        pyfiles = [i[:-3] for i in pyfiles]
+        pyfiles = [i.replace("/", ".") for i in pyfiles]
+        # print pyfiles
+        scriptslist = [importlib.import_module(i) for i in pyfiles]
+        # print scripts
+        self.bugscanplugin = (s for s in scriptslist if hasattr(s, "audit") and hasattr(s, 'assign'))
+        tmp = (s for s in scriptslist if hasattr(s, "verify"))
+        for t in tmp:
+            self.verifyfuncs.append(getattr(t, "verify"))
 
-
-def _pocscan_work(scriptqueue, resultqueue, ip, port=None, name=None):
-    """
-    this function aim to use the scan word
-    :param scriptqueue:  the queue contains poc script
-    :param resultqueue:  the result will be put in resultqueue
-    :param ip: the ip address, or may be subdomains
-    :param port: the port number
-    :param name: the service name
-    """
-    while not scriptqueue.empty():
-        function = scriptqueue.get()
-        result = []
-        # print "[_pocscan_work] [function={}]".format(function)
-        if hasattr(function, "verify"):
-            continue
-            # this is ourself script
+        for plugin in self.bugscanplugin:
             try:
-                func = getattr(function, "verify")
-                if port is None:
-                    _r = func(ip)
-                    if _r:
-                        result.append(_r)
+                assign = getattr(plugin, "assign")
+                audit = getattr(plugin, "audit")
+                self.scanfuncs.append((assign, audit))
+            except Exception as e:
+                logger.info("getattr function occure a error")
+        #print "total {} script, total {} verify".format(len(scripts), sum(functions))
+
+    def _scanwork(self):
+        while not self.urlqueue.empty():
+            obj = self.urlqueue.get(timeout=4)
+            for funcs in self.scanfuncs:
+                assign = funcs[0]
+                audit = funcs[1]
+                if obj.cmstype:
+                    # if obj.cmstype is True, means it's a http service
+                    cmstype = json.loads(obj.cmstype)
+                    _u = 'http://{}:{}'.format(obj.ip, obj.port)
+                    for cms in cmstype:
+                        cms = cms.encode('utf-8')
+                        res = assign(cms, _u)
+                        if res and len(res) == 2 and res[0]:
+                            result = audit(res[1])
+                            if result:
+                                pass
                 else:
-                    _r = func(ip, port, name)
-                    if _r:
-                        result.append(_r)
-
-            except Exception as e:
-                logger.error("[pocscan_work] [fun={}] [reason={}]".format(function, repr(e)))
-                #result = None
-        elif hasattr(function, "audit"):
-            # this is bugscan function
-            #port = port if port else 80
-            #cmstype = 'www'
-            #if is_ip(ip) and is_http(ip, port):
-            #    cmstype = cms_guess('http://{}:{}'.format(ip, port))
-            try:
-                audit = getattr(function, 'audit')
-                assign = getattr(function, 'assign')
-            except Exception as e:
-                logger.error('[pocscan_work] may function={} has not found the audit/assgin, error={}'.format(function, repr(e)))
-                continue
-            portobj = PortTable.objects.filter(ip=ip).filter(port=port)
-            for obj in portobj:
-                try:
-                    if obj.cmstype:
-                        # if the obj.cmstype exist. which means that we use the ip:port to make the request
-                        cmstype = json.loads(obj.cmstype)
-                        _u = 'http://{}:{}'.format(obj.ip, obj.port)
-                        for cms in cmstype:
-                            #logger.info('the cms is = {}'.format(cms))
-                            cms = cms.encode('utf-8')
-                            logger.info('type[cms] = {}'.format(type(cms)))
-                            _r = audit(assign(cms, _u)[1])
-                            if _r:
-                                result.append(_r)
-                            #logger.info("if no assign, to see is error happend")
+                    # if obj.cmstype is None， means it's not http service
+                    if obj.name:
+                        # if nmap recognize the service name, pass
+                        res = assign(obj.name, obj.ip)
+                        if res and len(res) == 2 and res[0]:
+                            result = audit(res[1])
+                            if result:
+                                pass
                     else:
-                        continue
-                        # if not exist the obj.cmstype, means not http service
-                        # that we use the ip and the name to audit
-                        _r = audit(assign('ip', obj.ip))
-                        if _r:
-                            result.append(_r)
-                        _r = audit(assign(obj.name, obj.ip))
-                        if _r:
-                            result.append(_r)
-                except Exception as e:
-                    logger.error('[pocscan_work] [Error= {}]'.format(repr(e)))
+                        # if not recognize the service name, pass ip
+                        res = assign('ip', obj.ip)
+                        if res and len(res) == 2 and res[0]:
+                            result = audit(res[1])
+                            if  result:
+                                pass
+
+            for vfunc in self.verifyfuncs:
+                _r = vfunc(obj.ip, obj.port, obj.name)
+                if _r:
+                    pass
 
 
 
+    def scan(self, threadnum=10):
+        threads = []
+        for t in xrange(threadnum):
+            _x = threading.Thread(target=self._scanwork)
+            threads.append(_x)
 
-        for _r in  result:
-            resultqueue.put(result)
+        for t in threads:
+            t.start()
+
+        for t in threads:
+            t.join()
 
 
-def pocscan(ip, port=None, name=None):
-    """
-    this function is the main function that use bugscan or self script to detect
-    the vulnerabilities
-    :param ip: ip address
-    :param port: port number
-    :param name: the service name
-    """
-    print "[pocscan] [scan ip= {}]".format(ip)
-    scriptqueue = loadscript()
+def pocscan(urlqueue):
+    p = PocPlugin(urlqueue)
+    p.scan()
 
-    resultqueue = Queue()
-    threads = []
 
-    for i in xrange(10):
-        if port is None:
-            t = threading.Thread(target=_pocscan_work, args=(scriptqueue, resultqueue, ip))
-        else:
-            t = threading.Thread(target=_pocscan_work, args=(scriptqueue, resultqueue, ip, port, name))
 
-        t.daemon = True
-        threads.append(t)
-
-    for t in threads:
-        t.start()
-
-    for t in threads:
-        t.join()
-
-    return resultqueue
 
 """
 def decode_response_text(txt, charset=None):

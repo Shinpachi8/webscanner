@@ -12,8 +12,23 @@ showdomainip
     <div class="row">
         <div class="panel panel-success">
             <div class="panel-heading">
-                <h3 class="panel-title text-center">domain-ip-info</h3>
+                <h3 class="panel-title text-center">domain-ip-info
+                <div class="btn-group">
+                    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">domains
+                        <span class="caret"></span>
+                    </button>
+                    <ul class="dropdown-menu" role="menu">
+                        {% for obj in domainobjs%}
+                        <li class="divider"></li>
+                        <li>
+                            <a href="?domain={{obj.id}}">{{obj.domain}}</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                </h3>
             </div>
+            
             <div class="panel-body">
                 <table class="table table-striped table-bordered table-hover table-condensed">
                     <thead>
@@ -27,8 +42,8 @@ showdomainip
                             <th>conf</th>
                             <th>httptitle</th>
                             <th>domain id </th>
-                            <th>action1 </th>
-                            <th>action2 </th>
+                            <!-- <th>action1 </th> -->
+                            <!-- <th>action2 </th> -->
                         </tr>
                     </thead>
                     <tbody>
@@ -44,8 +59,8 @@ showdomainip
                         <td> {{obj.conf}}</td>
                         <td> {{obj.httptitle}}</td>
                         <td> {{obj.id_domain}}</td>
-                        <td><a href="/scandevice/deletestatus?taskid={{task.id}}">delete</a></td>
-                        <td><a href="/scandevice/showceleryresult?celery_taskid={{task.celery_taskid}}">show celery result</a></td>
+                        <!-- <td><a href="/scandevice/deletestatus?taskid={{task.id}}">delete</a></td> -->
+                        <!-- <td><a href="/scandevice/showceleryresult?celery_taskid={{task.celery_taskid}}">show celery result</a></td> -->
                     </tr>
                     {% endfor %}
 
@@ -55,6 +70,7 @@ showdomainip
 
             </div>
         </div>
+
 
 
     <div class="panel panel-default">

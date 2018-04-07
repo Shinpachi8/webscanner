@@ -141,7 +141,7 @@ class PortTable(models.Model):
     conf = models.CharField(max_length=100, blank=True, null=True)
     id_domain = models.IntegerField(blank=True, null=True)
     httptitle = models.TextField(blank=True, null=True)
-    cmstype = models.CharField(max_length=30, blank=True, null=True)
+    cmstype = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
         managed = False

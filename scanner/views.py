@@ -17,7 +17,9 @@ from django.http import HttpResponseRedirect
 from django.core.files.base import ContentFile
 from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import reverse
+from django.db.models import Q
 from django.core.paginator import Paginator
+from cgi import escape
 from tasks import task_masscan, nmap_scan, get_title, sensitivescan, pocverify, CMSGuess
 from models import *
 from commons import *
@@ -108,10 +110,11 @@ def showdomainip(request):
         domain_id = domain_id.id
     else:
         domain_id = 1
-    ip_objects = PortTable.objects.filter(id_domain=domain_id)
-
+    ip_objects = PortTable.objects.filter(id_domain=domain_id).order_by('id')
+    domain_objects = Domain.objects.all()
     # get page
     # split page
+    print "domain_id is {}".format(domain_id)
     paginator = Paginator(ip_objects, 20)  # 实例化一个分页对象
 
     page = request.GET.get('page', '1')  # 获取页码
@@ -123,7 +126,7 @@ def showdomainip(request):
     except EmptyPage:  # 如果页码太大，没有相应的记录
         ip_objects = paginator.page(paginator.num_pages)  # 取最后一页的记录
 
-    return render(request, 'showdomainip.html', {'ipobjs': ip_objects})
+    return render(request, 'showdomainip.html', {'ipobjs': ip_objects, 'domainobjs': domain_objects})
 
 
 @login_required(login_url='/login/')
@@ -163,24 +166,24 @@ def scandomain(request):
     subdomains = Subdomains.objects.filter(id_domain=id_domain)
     for s in subdomains:
         #sensitivescan.delay(s.subdomain, id_domain)
-        print "[view] [scandomain] [line160] http={}".format(s.subdomain)
-        #sensitivescan.delay(s, id_domain)
+        # print "[view] [scandomain] [line160] http={}".format(s.subdomain)
+        sensitivescan.delay(s.subdomain, id_domain)
 
     # second get the ip talbes
-    portobjs = PortTable.objects.filter(id_domain=id_domain).values_list('ip', 'port', 'name')
+    portobjs = PortTable.objects.filter(Q(id_domain=id_domain),Q(cmstype__icontains='www')|Q(httptitle__isnull=False)).values_list('ip', 'port', 'name')
     iplist = set()
     httplist = []
     for obj in portobjs:
         ip, port, name = obj
         iplist.add(ip)
         #if is_http(ip, port) == 'http':
-        if str(port) in ("443", "8443") or name.find("https") > -1:
+        if str(port) in ("443", "8443") or (name.find("https") > -1) or (name.find('ssl') > -1):
             h = "https://{}:{}".format(ip, port)
         else:
             h = "http://{}:{}".format(ip, port)
             httplist.append(h)
 
-    pocverify.delay(id_domain)
+    # pocverify.delay(id_domain)
 
 
     # iplist = list(iplist)
@@ -192,8 +195,7 @@ def scandomain(request):
     # # use infoleak to scan the http service
     for http in httplist:
     #     # print "[view] [scandomain] [line182] http={}".format(http)
-        #sensitivescan.delay(http, id_domain)
-        pass
+        sensitivescan.delay(http, id_domain)
 
     return redirect("/")
     # return HttpResponse("httplist={}\nip_cidr={}".format(httplist, ip_cidr))
@@ -241,12 +243,14 @@ def showvulns(request):
     if "id_domain" not in request.GET:
         id_domain = 1
     else:
+        id_domain = request.GET.get('id_domain')
         try:
             id_domain = int(id_domain)
         except:
             return Http404("param format error")
 
-    vulnobj = Vulns.objects.filter(id_domain=id_domain)
+    vulnobj = Vulns.objects.filter(id_domain=id_domain).order_by('id')
+    domainobjs = Domain.objects.all()
     # get page
     # split page
     paginator = Paginator(vulnobj, 20)  # 实例化一个分页对象
@@ -260,7 +264,7 @@ def showvulns(request):
     except EmptyPage:  # 如果页码太大，没有相应的记录
         vulnobj = paginator.page(paginator.num_pages)  # 取最后一页的记录
 
-    return render(request, 'vulns.html', {'ipobjs': vulnobj})
+    return render(request, 'vulns.html', {'ipobjs': vulnobj, 'domainobjs': domainobjs})
 
 
 
@@ -317,3 +321,41 @@ def guesscms(request):
     #    CMSGuess.delay(_, ipobj.id, isip=True)
     return HttpResponse('alright, we finally got it')
 
+@login_required(login_url='/login/')
+def search(request):
+    """
+    this function aim to use the condition to search some
+    data from the databases like domain, port, name, cmstype and other types
+    """
+    if request.method != 'POST':
+        return render(request, 'search.html')
+
+    domain = request.POST.get('domain', '')
+    name = request.POST.get('name', '')
+    cmstype = request.POST.get('cmstype', '')
+    title = request.POST.get('title', '')
+    
+    if domain:
+        # if domain has value, then get it id form domain
+        id_domain = Domain.objects.get(domain__icontains=domain).id
+    else:
+        id_domain = ''
+    
+
+    print domain, name, cmstype, title  
+
+    objs = PortTable.objects.filter(Q(name__icontains=name)&Q(cmstype__icontains=cmstype)&Q(httptitle__icontains=title)&Q(id_domain__icontains=id_domain)).values('id_domain', 'ip', 'port', 'httptitle', 'cmstype', 'name')
+
+    #objs = PortTable.objects.filter(name__icontains=name).filter(cmstype__icontains=cmstype)\
+    #    .filter(httptitle__icontains=title)
+    return JsonResponse({'result': list(objs)})
+
+
+
+def encode(requests):
+    obj = PortTable.objects.filter(httptitle__isnull=False)
+    for o in obj:
+        o.httptitle = escape(o.httptitle)
+        o.save()
+    
+    return HttpResponse('Done')

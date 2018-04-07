@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # coding=utf-8
-
+# import gevent
+# from gevent import monkey
+# monkey.patch_all()
+# from gevent.queue import Queue as gQueue
 import re
 import threading
 import nmap
@@ -22,6 +25,7 @@ from bs4 import BeautifulSoup as bs
 from Queue import Queue
 from dummy import *
 from scanner.models import *
+from cgi import escape
 from config import *
 
 reload(sys)
@@ -418,7 +422,7 @@ def is_http(ip, port):
     """
     service = None
     try:
-        a = socket.create_connection((ip, int(port)), timeout=5)
+        a = socket.create_connection((ip, int(port)), timeout=10)
         a.send('GET / HTTP/1.1\r\n\r\n')
         data = a .recv(30)
         a.close()
@@ -437,8 +441,9 @@ def fetch_title_work(objqueue):
         try:
             obj = objqueue.get()
             portobjid, ip, port = obj
-            if is_http(ip, port) != 'http':
-                continue
+            if int(port) not in [80,81, 443] or  (int(port) > 9000 and int(port) < 7000):
+                if is_http(ip, port) != 'http':
+                    continue
             scheme = "http" if str(port) not in ["443", "8443"] else "https"
             url = scheme + "://" + ip + ":" + str(port)
             print "[fetch_title_work] [url={}]".format(url)
@@ -476,6 +481,7 @@ def fetch_title_work(objqueue):
                 title = html.replace("\n", "").replace('\r', '').strip()[:200]
             # update 18-01-08 save the obj to database
             title = decode_response_text(title)
+            title = escape(title)
             print "[title={}]".format(title)
             update_httptitle_to_database(portobjid, title)
 
@@ -632,6 +638,7 @@ class InfoLeakScan():
         self.checkset = self.load_files("./scanner/util/info.txt", self.url)
         self.result = Queue()
         self.has401 = False
+        self.lenth_404_page = self.get_404()
         self.access_length_set = set()
         self.lock = threading.Lock()
 
@@ -642,6 +649,8 @@ class InfoLeakScan():
         """
         if not url.find("://") > 0:
             url = "http://" + url
+        if url.find('443') > 0:
+            url = url.replace('http://', 'https://')
         _ = urlparse.urlparse(url)
         return _.scheme, _.netloc, _.path if _.path else "/"
 
@@ -791,21 +800,209 @@ class InfoLeakScan():
             if exist:
                 self.result.put(url)
 
-    def scan(self, threads=6):
+    def scan(self, threads=10):
         try:
+            all_threads = []
+            for i in xrange(threads):
+                t = threading.Thread(target=self._scan_work)
+                t.start()
+                all_threads.append(t)
 
-            if ":" in self.netloc: # http://ip:port
-                _ = self.netloc.split(":")
-                tip = _[0] # tmp ip
-                tport = _[1] # tmp port
-                if is_ip(tip):
-                    if is_http(tip, tport) != 'http':
-                        # if is ip and not http service, return
-                        print "[{}:{}] is not http service".format(tip, tport)
             for thread in all_threads:
                 thread.join()
         except Exception as e:
             logger.error("[infoscan] [scan] [reason={}]".format(repr(e)))
+
+
+
+class InfoLeakScanGevent():
+    """
+    InfoLeakScan aim to scan the sensitive folder or sensitive file
+    it's result saved the found target.
+    """
+    error_flag = re.compile(r'Error|Error Page|Unauthorized|Welcome to tengine!|Welcome to OpenResty!|invalid service url|Not Found|不存在|未找到|410 Gone|looks like something went wrong|Bad Request|Welcome to nginx!', re.I)
+
+    def __init__(self, url):
+        self.scheme, self.netloc, self.path = self.parse_url(url)
+        self.url = self.scheme + "://" + self.netloc + "/"
+        self.checkset = self.load_files("/home/shinpachi/tool/scanner/webscanner/scanner/util/info.txt", self.url)
+        self.result = gQueue()
+        self.has401 = False
+        self.lenth_404_page = self.get_404()
+        self.access_length_set = set()
+        self.lock = threading.Lock()
+
+
+    def parse_url(self, url):
+        """
+        parse url and return it's scheme, netloc, path
+        """
+        if not url.find("://") > 0:
+            url = "http://" + url
+        if url.find('443') > 0:
+            url = url.replace('http://', 'https://')
+        _ = urlparse.urlparse(url)
+        return _.scheme, _.netloc, _.path if _.path else "/"
+
+
+    def get_request(self, url, compress=False):
+        ret = []
+        try:
+            ret = http_request(url, ret)
+            """
+            start_time = time.time()
+            t = threading.Thread(target=http_request, args=(url, ret, compress))
+            t.daemon = True
+            t.start()
+            while t.isAlive():
+                if time.time() - start_time > 15:
+                    print "[get_request] [time > 15s]"
+                    return (-1, {}, "")
+                else:
+                    time.sleep(1.0)
+            if not ret:
+                return (-1, {}, "")
+            """
+            html = ret[0]
+            status = ret[1]
+            headers = ret[2]
+            return (status, headers, html)
+        except Exception as e:
+            logging.error("[InfoLeak] [get_reqeust] [reason={}]".format(repr(e)))
+            return (-1, {}, "")
+
+    def get_404(self):
+        """
+        get 404 page, check status_code, black item, and len of html_doc
+        """
+        errorpage = self.url + "Check-404-exists-page-test"
+        status, headers, html_doc = self.get_request(errorpage)
+        lenth_404_page = len(html_doc)
+
+        return  lenth_404_page
+
+    def check_exist(self, url, lenth_404_page, compress=False):
+        status, headers, html_doc = self.get_request(url, compress=compress)
+        #print "[url={}] [status={}]".format(url, status)
+        exist = False
+        # chekc if in  [301, 302, 400, 404, 501, 502, 503, 505]
+        if status in [-1, 301, 302, 400, 403, 404, 500, 501, 502, 503, 505]:
+            return exist
+
+        """
+        if status == 401:
+            exist = True
+            return exist
+        """
+
+        is_404 = False
+        # if status is 404,
+        if status == 404:
+            is_404 = True
+        elif len(html_doc) < 20:
+            is_404 = True
+        elif InfoLeakScan.error_flag.findall(html_doc):
+            is_404 = True
+        else:
+            _len = len(html_doc)
+            _min = min(_len, lenth_404_page)
+            if _min == 0:
+                _min = 10.0
+            if abs(float(_len - lenth_404_page)) / _min < 0.3:
+                is_404 = True
+
+        if compress and status == 200:
+            is_404 = True
+        # if is_404
+        if is_404:
+            return exist
+
+
+        if status == 206:
+            if (headers.get("Content-Type", "").find("text") > -1) \
+                or (headers.get("Content-Type", "").find("html") > -1):
+                pass
+            else:
+                exist = True
+        else:
+            if status == 200 and \
+               ((headers.get("Content-Type", "").find("text") > 0)
+                or (headers.get("Content-Type", "").find("html") > 0)
+                or (headers.get("Content-Type", "").find("json") > 0)):
+                exist = True
+
+        if exist and status == 401:
+            if self.has401:
+                exist = False
+            else:
+                self.has401 = True
+                exist = True
+
+        if exist:
+            x = len(html_doc) - len(url)
+            if len(html_doc) in self.access_length_set or x in self.access_length_set:
+                exist = False
+            else:
+                self.access_length_set.add(len(html_doc))
+                self.access_length_set.add(x)
+        return exist
+
+    def load_files(self, filename, url):
+        # based on payload, judge if need the last /
+        if url.endswith("/"):
+            url = url.rstrip("/")
+
+        files = gQueue()
+        with open(filename, "r") as f:
+            for line in f.xreadlines():
+                if line.startswith("#"):
+                    continue
+                line = line.strip()
+                line = url + line
+                files.put(line)
+
+        return files
+
+    def is_compress(self, url):
+        scheme, netloc, path = self.parse_url(url)
+        COMPRESS_FILE = ['zip', '7z', 'tar.gz', 'tar', 'rar', 'tar.bz2', 'bz2', 'log', "out", "tgz", "gz"]
+        for i in COMPRESS_FILE:
+            if i in path:
+                return True
+
+        return False
+
+    def _scan_work(self):
+        """
+        this is the single thread scan work
+        """
+        while not self.checkset.empty():
+            try:
+                url = self.checkset.get()
+            except Exception:
+                return
+            # print url
+            if self.is_compress(url):
+                exist = self.check_exist(url, self.lenth_404_page, compress=True)
+            else:
+                exist = self.check_exist(url, self.lenth_404_page)
+
+            if exist:
+                self.result.put(url)
+
+    def scan(self, threadnum=40):
+        try:
+            threads = [gevent.spawn(self._scan_work) for i in xrange(threadnum)]
+            gevent.joinall(threads)
+        except Exception as e:
+            logging.error("[infoscan] [scan] [reason={}]".format(repr(e)))
+
+
+
+
+
+
+
 
 
 def save_vuln_to_db(id_domain, url, vuln_name, **param):
@@ -850,6 +1047,8 @@ def format_url(url):
             url = "http://" + url
         if url.count('/') == 2:
             url += '/'
+        if url.find('443') > 0:
+            url = url.replace('http://', 'https://')
         return url
     except Exception as e:
         logger.error('[format_url] Exception %s' % str(e))

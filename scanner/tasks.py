@@ -28,7 +28,7 @@ def task_masscan(ip_cidr, id_domain, port=None):
     if port is None:
         port = TARGET_PORTS
 
-    command = "{mas} {ip_cidr} -p {port} --open --banners --rate 2000 -oX -".format(mas=mas, ip_cidr=ip_cidr, port=port)
+    command = "{mas} {ip_cidr} -p {port} --open --banners --rate 1000 -oX -".format(mas=mas, ip_cidr=ip_cidr, port=port)
 
     content = masscan_work(command)
     #print "masscan_result = {}".format(content)
@@ -78,10 +78,11 @@ def nmap_scan(ipportqueue, id_domain):
     """
 
 
-@shared_task
+@shared_task(time_limit=200)
 def sensitivescan(url, id_domain):
 
     try:
+        # scanobj = InfoLeakScanGevent(url)
         scanobj = InfoLeakScan(url)
         scanobj.scan()
         result = scanobj.result
@@ -116,7 +117,7 @@ def pocverify(id_domain):
         urlqueue.put(obj)
     pocscan(urlqueue)
 
-@shared_task(time_limit=600)
+@shared_task(time_limit=6000)
 def get_title(portobjlist):
     """
     the celery task deal the http title task
@@ -127,7 +128,7 @@ def get_title(portobjlist):
 
 
 
-@shared_task(time_limit=600)
+@shared_task(time_limit=3000)
 def CMSGuess(id_domain, isip):
     urlqueue = Queue()
     if isip:

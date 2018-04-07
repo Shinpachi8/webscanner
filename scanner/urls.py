@@ -27,4 +27,6 @@ urlpatterns = [
     url(r'^showvulns$', views.showvulns, name="showvulns"),
     url(r'^deleteopt$', views.deleteopt, name="deleteopt"),
     url(r'^guesscms$', views.guesscms, name="guesscms"),
+    url(r'^encode$', views.encode, name="encode"),
+    url(r'^search$', views.search, name="search"),
 ]

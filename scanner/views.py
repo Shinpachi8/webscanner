@@ -167,7 +167,7 @@ def scandomain(request):
     for s in subdomains:
         #sensitivescan.delay(s.subdomain, id_domain)
         # print "[view] [scandomain] [line160] http={}".format(s.subdomain)
-        sensitivescan.delay(s.subdomain, id_domain)
+        sensitivescan.delay(s.subdomain, '80' id_domain)
 
     # second get the ip talbes
     portobjs = PortTable.objects.filter(Q(id_domain=id_domain),Q(cmstype__icontains='www')|Q(httptitle__isnull=False)).values_list('ip', 'port', 'name')
@@ -181,7 +181,7 @@ def scandomain(request):
             h = "https://{}:{}".format(ip, port)
         else:
             h = "http://{}:{}".format(ip, port)
-            httplist.append(h)
+            httplist.append((ip, port))
 
     # pocverify.delay(id_domain)
 
@@ -193,9 +193,10 @@ def scandomain(request):
         # script load and scan
     #     pocverify.delay(i, id_domain, iscidr=True)
     # # use infoleak to scan the http service
-    for http in httplist:
+    for obj in httplist:
     #     # print "[view] [scandomain] [line182] http={}".format(http)
-        sensitivescan.delay(http, id_domain)
+        ip, port = obj
+        sensitivescan.delay(ip, port, id_domain)
 
     return redirect("/")
     # return HttpResponse("httplist={}\nip_cidr={}".format(httplist, ip_cidr))

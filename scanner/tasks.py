@@ -81,10 +81,18 @@ def nmap_scan(ipportqueue, id_domain):
 
 
 @shared_task(time_limit=200)
-def sensitivescan(url, id_domain):
+def sensitivescan(ip, port, id_domain):
 
     try:
         # scanobj = InfoLeakScanGevent(url)
+        scheme = ''
+        if is_http(ip, port) == 'http':
+            scheme = 'http'
+        elif is_https(ip, port) == 'https':
+            scheme = 'https'
+        else:
+            return
+        url = "{}://{}:{}".format(scheme, ip, port)
         scanobj = InfoLeakScan(url)
         scanobj.scan()
         result = scanobj.result

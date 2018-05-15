@@ -51,9 +51,9 @@ def task_masscan(ip_cidr, id_domain, port=None):
             except Exception as e:
                 logger.error("save masscan error for reason={}".format(repr(e)))
         s.close()
-                
 
-        
+
+
         # save_masscan_result_to_porttable(x, id_domain)
 
 
@@ -86,10 +86,10 @@ def sensitivescan(ip, port, id_domain):
     try:
         # scanobj = InfoLeakScanGevent(url)
         scheme = ''
-        if is_http(ip, port) == 'http':
-            scheme = 'http'
-        elif is_https(ip, port) == 'https':
+        if is_https(ip, port) == 'https':
             scheme = 'https'
+        elif is_http(ip, port) == 'http':
+            scheme = 'http'
         else:
             return
         url = "{}://{}:{}".format(scheme, ip, port)
@@ -98,7 +98,7 @@ def sensitivescan(ip, port, id_domain):
         result = scanobj.result
         count = 0
         print "[sensitive_task] [url={}] [result.qsize] = {}".format(url, result.qsize())
-        insert_vuln_sql = 'insert into vulns (id_domain, url, vuln_name, serverity) values ({id_domain}, {url}, {vuln_name}, {severity })'
+        insert_vuln_sql = 'insert into vulns (id_domain, url, vuln_name, serverity) values ("{id_domain}", "{url}", "{vuln_name}", ""{severity}")'
         while not result.empty():
             if count > 10:
                 result.queue.clear()

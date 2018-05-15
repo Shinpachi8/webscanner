@@ -167,7 +167,7 @@ def scandomain(request):
     for s in subdomains:
         #sensitivescan.delay(s.subdomain, id_domain)
         # print "[view] [scandomain] [line160] http={}".format(s.subdomain)
-        sensitivescan.delay(s.subdomain, '80' id_domain)
+        sensitivescan.delay(s.subdomain, '80', id_domain)
 
     # second get the ip talbes
     portobjs = PortTable.objects.filter(Q(id_domain=id_domain),Q(cmstype__icontains='www')|Q(httptitle__isnull=False)).values_list('ip', 'port', 'name')
@@ -335,15 +335,15 @@ def search(request):
     name = request.POST.get('name', '')
     cmstype = request.POST.get('cmstype', '')
     title = request.POST.get('title', '')
-    
+
     if domain:
         # if domain has value, then get it id form domain
         id_domain = Domain.objects.get(domain__icontains=domain).id
     else:
         id_domain = ''
-    
 
-    # print domain, name, cmstype, title  
+
+    # print domain, name, cmstype, title
 
     objs = PortTable.objects.filter(Q(name__icontains=name)&Q(cmstype__icontains=cmstype)&Q(httptitle__icontains=title)&Q(id_domain__icontains=id_domain)).values('id_domain', 'ip', 'port', 'httptitle', 'cmstype', 'name')
 
@@ -358,5 +358,5 @@ def encode(requests):
     for o in obj:
         o.httptitle = escape(o.httptitle)
         o.save()
-    
+
     return HttpResponse('Done')

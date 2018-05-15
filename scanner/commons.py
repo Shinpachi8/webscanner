@@ -38,7 +38,6 @@ socket.setdefaulttimeout(20)
 here = os.path.split(os.path.abspath(__file__))[0]
 requests.packages.urllib3.disable_warnings()
 logging.getLogger('requests').setLevel(logging.WARNING)
-logger = LogUtil()
 
 
 def parse_file(lines):
@@ -385,10 +384,10 @@ def fetch_title_work(objqueue):
             obj = objqueue.get()
             portobjid, ip, port = obj
             ishttp = True
-            if is_http(ip, port) == 'http':
-                ishttp = True
-            elif is_https(ip, port) == 'https':
+            if is_https(ip, port) == 'https':
                 ishttp = False
+            elif is_http(ip, port) == 'http':
+                ishttp = True
             else:
                 continue
             scheme = "http" if ishttp  else "https"
@@ -407,7 +406,7 @@ def fetch_title_work(objqueue):
             title = decode_response_text(title)
             title = escape(title)
             print "[title={}]".format(title)
-            update_httptitle_to_database = 'update port_table set httptitle={} where id={}'
+            update_httptitle_to_database = 'update port_table set httptitle=\'{}\' where id={}'
             save2sql(update_httptitle_to_database.format(title, portobjid))
 
         except Exception as e:
@@ -455,7 +454,7 @@ class PocPlugin(object):
     def _scanwork(self):
         while not self.urlqueue.empty():
             obj = self.urlqueue.get(timeout=4)
-            insert_vuln_sql = 'insert into vulns (url, vuln_name, severity, proof) values ({url}, {vuln_name}, {severity}, {proof})'
+            insert_vuln_sql = 'insert into vulns (url, vuln_name, severity, proof) values ("{url}", "{vuln_name}", "{severity}", "{proof}")'
             for funcs in self.scanfuncs:
                 assign = funcs[0]
                 audit = funcs[1]
@@ -1345,6 +1344,7 @@ def LogUtil(path='/tmp/webscanner.log', name='test'):
     return logger
 
 
+logger = LogUtil()
 
 
 class THTTPJOB(object):
@@ -1515,7 +1515,7 @@ def is_https(url, port=None):
         conn.close()
         service = 'https'
     except Exception as e:
-        print "[lib.common] [is_http] {}".format(repr(e))
+        print "[lib.common] [is_https] {}".format(repr(e))
 
     return service
 

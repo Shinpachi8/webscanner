@@ -36,7 +36,25 @@ def task_masscan(ip_cidr, id_domain, port=None):
     if content:
 
         x = parse_masscan_xml(content)  # (ip, port, name, banner)
-        save_masscan_result_to_porttable(x, id_domain)
+        s = MySQLUtils()
+        check_exist_sql = 'select * from port_table where ip={ip} and port={port} and id_domain={id_domain}'
+        update_masscan_sql = 'update port_table set name={name}, product={banner} where id={id}'
+        insert_masscan_sql = 'insert into port_table (ip, port, name, product, id_domain) values ({ip}, {port}, {name}, {product}, {id_domain})'
+        for item in x:
+            ip, port, name, banner = item
+            try:
+                data = s.fetchone(check_exist_sql.format(ip=ip, port=port, id_domain=id_domain))
+                if data:
+                    s.insert(update_masscan_sql.format(name=name, banner=banner, id=data[0]))
+                else:
+                    s.insert(insert_masscan_sql.format(ip=ip, port=port, name=name, product=banner, id_domain=id_domain))
+            except Exception as e:
+                logger.error("save masscan error for reason={}".format(repr(e)))
+        s.close()
+                
+
+        
+        # save_masscan_result_to_porttable(x, id_domain)
 
 
 
@@ -60,22 +78,6 @@ def nmap_scan(ipportqueue, id_domain):
     #resultqueue = Queue()
     #nmap_work(ipportqueue, resultqueue, id_domain)
     nmap_work(ipportqueue, id_domain)
-    """
-    while not resultqueue.empty():
-        item = resultqueue.get()
-        pprint(item)
-        ip = item[0]
-        port = item[4]
-        protocol = item[3]
-        name = item[5]
-        product = item[7]
-        extrainfo = item[8]
-        version = item[10]
-        conf = item[11]
-        id_domain = id_domain
-
-        save_nmap_result_to_database(ip, port, protocol, name, product, extrainfo, version, conf, id_domain)
-    """
 
 
 @shared_task(time_limit=200)
@@ -88,17 +90,18 @@ def sensitivescan(url, id_domain):
         result = scanobj.result
         count = 0
         print "[sensitive_task] [url={}] [result.qsize] = {}".format(url, result.qsize())
+        insert_vuln_sql = 'insert into vulns (id_domain, url, vuln_name, serverity) values ({id_domain}, {url}, {vuln_name}, {severity })'
         while not result.empty():
             if count > 10:
                 result.queue.clear()
                 break
             url = result.get()
             vuln_name = "sensitive infomation"
-
-            save_vuln_to_db(id_domain, url, vuln_name, severity="low")
+            save2sql(insert_vuln_sql.format(id_domain=id_domain, url=url, vuln_name=vuln_name, severity='low'))
+            # save_vuln_to_db(id_domain, url, vuln_name, severity="low")
             count += 1
     except Exception as e:
-        print "[sensitive_task] [error={}]".format(repr(e))
+        logger.error("[sensitive_task] [error={}]".format(repr(e)))
 
 
 

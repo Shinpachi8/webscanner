@@ -342,7 +342,7 @@ def search(request):
         id_domain = ''
     
 
-    print domain, name, cmstype, title  
+    # print domain, name, cmstype, title  
 
     objs = PortTable.objects.filter(Q(name__icontains=name)&Q(cmstype__icontains=cmstype)&Q(httptitle__icontains=title)&Q(id_domain__icontains=id_domain)).values('id_domain', 'ip', 'port', 'httptitle', 'cmstype', 'name')
 

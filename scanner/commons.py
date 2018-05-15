@@ -19,8 +19,11 @@ import glob
 import sys
 import logging
 import urlparse
+import httplib
+import ssl
 import importlib
 import urllib2
+import pymysql
 from bs4 import BeautifulSoup as bs
 from Queue import Queue
 from dummy import *
@@ -34,6 +37,9 @@ sys.setdefaultencoding('utf-8')
 socket.setdefaulttimeout(20)
 here = os.path.split(os.path.abspath(__file__))[0]
 requests.packages.urllib3.disable_warnings()
+logging.getLogger('requests').setLevel(logging.WARNING)
+logger = LogUtil()
+
 
 def parse_file(lines):
     """
@@ -210,38 +216,9 @@ def parse_masscan_xml(content):
 
 
 
-def save_masscan_result_to_porttable(content, id_domain):
-    """
-    this function aim to save the masscan result to database,
-    masscan result like [(ip, port, name, banner),]
-    :param: content,  the masscan result
-    :type: None
-    """
-    for x in content:
-        ip, port, name, banner = x
-        try:
-
-            port_obj, created = PortTable.objects.get_or_create(
-                ip=ip,
-                port=int(port),
-                # name=name,
-                # product=banner,
-                id_domain=id_domain,
-            )
-            port_obj.name = name
-            port_obj.product = banner
-            port_obj.save()
-            if DEBUG:
-                if created:
-                    logger.info("[save_masscan_result_to_porttable] create port_table obj= {}".format(port_obj))
-        except Exception as e:
-            logger.error("[save_masscan_result_to_porttable] reason={}".format(repr(e)))
-
-
-
 
 #def nmapscan(ipportqueue, resultqueue, id_domain, arguments=None):
-def nmapscan(ipportqueue, id_domain, arguments=None):
+def nmap_scan_job(ipportqueue, id_domain, arguments=None):
     """
     this aim to use nmap to scan the host and port to get the infomation of the
     host and it's port
@@ -277,7 +254,22 @@ def nmapscan(ipportqueue, id_domain, arguments=None):
                     extrainfo = scan_result[8]
                     version = scan_result[10]
                     conf = scan_result[11] + "|**|" + scan_result[12]
-                    save_nmap_result_to_database(ip, port, protocol, name, product, extrainfo, version, conf, id_domain)
+                    # if port in databases, then update, else insert
+                    try:
+                        s = MySQLUtils()
+                        check_if_exist = 'select * from port_table where ip={} and port={} and id_domain={}'
+                        data = s.fetchone(check_if_exist.format(ip, port, id_domain))
+                        if data:
+                            update_nmap_result = 'update port_table set protocol = {}, name={}, product={}, extrainfo={}, version={}, conf={} where id={}'
+                            s.insert(update_nmap_result.format(protocol, name, product, extrainfo, version, conf, data[0]))
+                        else:
+                            insert_nmap_result = 'insert into port_table (ip, port, protocol, name, product, extrainfo, version, conf, id_domain) values ({ip}, {port}, {protocol}, {name}, {product}, {extrainfo}, {version}, {conf}, {id_domain})'
+                            s.insert(insert_nmap_result.format(ip=ip, port=port, protocol=protocol, name=name, product=product, extrainfo=extrainfo, version=version, conf=conf, id_domain=id_domain))
+                    except Exception as e:
+                        logger.error("insert/update nmap result error={}".format(repr(e)))
+                    finally:
+                        s.close()
+                    # save_nmap_result_to_database(ip, port, protocol, name, product, extrainfo, version, conf, id_domain)
                 # resultqueue.put(tuple(scan_result))
         except Exception as e:
             logger.error("[common] [nmap_scan] Error: {}".format(repr(e)))
@@ -297,7 +289,7 @@ def nmap_work(ipportlist, id_domain):
 
     threads = []
     for i in xrange(6):
-        thd = threading.Thread(target=nmapscan, args=(ipportqueue, id_domain))
+        thd = threading.Thread(target=nmap_scan_job, args=(ipportqueue, id_domain))
         threads.append(thd)
     for thd in threads:
         thd.start()
@@ -306,39 +298,6 @@ def nmap_work(ipportlist, id_domain):
         thd.join()
 
 
-def save_nmap_result_to_database(ip,
-                                port,
-                                protocol,
-                                name,
-                                product,
-                                extrainfo,
-                                version,
-                                conf,
-                                id_domain):
-    try:
-        obj = PortTable.objects.filter(ip=ip).filter(port=port).filter(id_domain=id_domain)[0]
-        if obj:
-            obj.protocol = protocol
-            obj.name = name
-            obj.product = product
-            obj.extrainfo = extrainfo
-            obj.version = version
-            obj.conf = conf
-        else:
-            obj = PortTable(ip=ip,
-                    port=port,
-                    protocol=protocol,
-                    name=name,
-                    # product=product,
-                    extrainfo=extrainfo,
-                    version=version,
-                    conf=conf,
-                    id_domain=id_domain)
-            if product:
-                obj.product = product
-        obj.save()
-    except Exception as e:
-        logger.error("[commons] [save_nmap_result_to_database] [error={}]".format(repr(e)))
 
 
 def fetch_title(portobjlist, threadnum=10):
@@ -415,22 +374,6 @@ def http_request(url, result, compress=False):
         result.append(headers)
         return result
 
-def is_http(ip, port):
-    """
-    this function aim to detect if the service running in the port is
-    http service
-    """
-    service = None
-    try:
-        a = socket.create_connection((ip, int(port)), timeout=10)
-        a.send('GET / HTTP/1.1\r\n\r\n')
-        data = a .recv(30)
-        a.close()
-        if 'HTTP' in data:
-            service = 'http'
-    except Exception as e:
-        pass
-    return service
 
 def fetch_title_work(objqueue):
     """
@@ -441,67 +384,36 @@ def fetch_title_work(objqueue):
         try:
             obj = objqueue.get()
             portobjid, ip, port = obj
-            if int(port) not in [80,81, 443] or  (int(port) > 9000 and int(port) < 7000):
-                if is_http(ip, port) != 'http':
-                    continue
-            scheme = "http" if str(port) not in ["443", "8443"] else "https"
-            url = scheme + "://" + ip + ":" + str(port)
-            print "[fetch_title_work] [url={}]".format(url)
+            ishttp = True
+            if is_http(ip, port) == 'http':
+                ishttp = True
+            elif is_https(ip, port) == 'https':
+                ishttp = False
+            else:
+                continue
+            scheme = "http" if ishttp  else "https"
+            url = '{}://{}:{}'.format(scheme, ip, port)
+            logger.info( "[fetch_title_work] [url={}]".format(url))
             tmp = []
             html = http_request(url, tmp)
             html = html[0]
-            """
 
-
-            start_time = time.time()
-            t = threading.Thread(target=http_request, args=(url, html))
-            t.daemon = True
-            t.start()
-            while t.isAlive():
-                if ((time.time() - start_time) > 15):
-                    raise Exception("http request take more than 15s")
-                else:
-                    time.sleep(1.0)
-
-            if not html:
-                raise Exception("http request return nothing")
-            else:
-                html = html[0]
-            """
-            title =  re.findall("<title>(.*)</title>", html, re.I)
+            title =  re.findall("<title>(.*)?</title>", html, re.I)
             if title:
                 title = title[0]
-                """
-                try:
-                    title = title[0].decode("utf-8", ignore=True)
-                except:
-                    title = title[0]
-                """
             else:
-                title = html.replace("\n", "").replace('\r', '').strip()[:200]
+                title = html.replace("\n", "").replace('\r', '').replace(' ', '').strip()[:200]
             # update 18-01-08 save the obj to database
             title = decode_response_text(title)
             title = escape(title)
             print "[title={}]".format(title)
-            update_httptitle_to_database(portobjid, title)
+            update_httptitle_to_database = 'update port_table set httptitle={} where id={}'
+            save2sql(update_httptitle_to_database.format(title, portobjid))
 
         except Exception as e:
             logger.error("[fetch_title_work] [reason={}]".format(repr(e)))
 
 
-def update_httptitle_to_database(portobjid, title):
-    """
-    this will update the port_table with the http title and
-    :param portobjid: is the id of a item in port_table
-    :param title: is the title to update
-    """
-
-    try:
-        portobj = PortTable.objects.get(id=portobjid)
-        portobj.httptitle = title
-        portobj.save()
-    except Exception as e:
-        logger.error("[update_httptitle_to_database] [reason={}]".format(repr(e)))
 
 
 class PocPlugin(object):
@@ -543,6 +455,7 @@ class PocPlugin(object):
     def _scanwork(self):
         while not self.urlqueue.empty():
             obj = self.urlqueue.get(timeout=4)
+            insert_vuln_sql = 'insert into vulns (url, vuln_name, severity, proof) values ({url}, {vuln_name}, {severity}, {proof})'
             for funcs in self.scanfuncs:
                 assign = funcs[0]
                 audit = funcs[1]
@@ -556,7 +469,10 @@ class PocPlugin(object):
                         if res and len(res) == 2 and res[0]:
                             result = audit(res[1])
                             if result:
-                                pass
+                                save2sql(insert_vuln_sql.format(url=result['url'],
+                                    vuln_name=result['vuln_name'],
+                                    severity=result['severity'],
+                                    proof=result['proof']))
                 else:
                     # if obj.cmstype is None， means it's not http service
                     if obj.name:
@@ -565,19 +481,28 @@ class PocPlugin(object):
                         if res and len(res) == 2 and res[0]:
                             result = audit(res[1])
                             if result:
-                                pass
+                                save2sql(insert_vuln_sql.format(url=result['url'],
+                                    vuln_name=result['vuln_name'],
+                                    severity=result['severity'],
+                                    proof=result['proof']))
                     else:
                         # if not recognize the service name, pass ip
                         res = assign('ip', obj.ip)
                         if res and len(res) == 2 and res[0]:
                             result = audit(res[1])
                             if  result:
-                                pass
+                                save2sql(insert_vuln_sql.format(url=result['url'],
+                                    vuln_name=result['vuln_name'],
+                                    severity=result['severity'],
+                                    proof=result['proof']))
 
             for vfunc in self.verifyfuncs:
                 _r = vfunc(obj.ip, obj.port, obj.name)
                 if _r:
-                    pass
+                    save2sql(insert_vuln_sql.format(url=result['url'],
+                        vuln_name=result['vuln_name'],
+                        severity=result['severity'],
+                        proof=result['proof']))
 
 
 
@@ -599,31 +524,6 @@ def pocscan(urlqueue):
     p.scan()
 
 
-
-
-"""
-def decode_response_text(txt, charset=None):
-    if charset:
-        try:
-            return txt.decode(charset)
-        except:
-            pass
-
-    for _ in ['UTF-8', 'GB2312', 'GBK', 'iso-8859-1', 'big5']:
-        try:
-            return txt.decode(_)
-        except:
-            pass
-
-    try:
-        return txt.decode('ascii', 'ignore')
-    except:
-        pass
-
-    #raise Exception('Fail to decode response Text')
-    return txt
-
-"""
 
 class InfoLeakScan():
     """
@@ -1002,44 +902,6 @@ class InfoLeakScanGevent():
 
 
 
-
-
-
-def save_vuln_to_db(id_domain, url, vuln_name, **param):
-    """
-        url = models.TextField(blank=True, null=True)
-        parameters = models.TextField(blank=True, null=True)
-        headers_string = models.TextField(blank=True, null=True)
-        method = models.CharField(max_length=15, blank=True, null=True)
-        delta_time = models.CharField(max_length=50, blank=True, null=True)
-        vuln_name = models.CharField(max_length=150, blank=True, null=True)
-        severity = models.CharField(max_length=30, blank=True, null=True)
-        checks = models.CharField(max_length=150, blank=True, null=True)
-        proof = models.TextField(blank=True, null=True)
-        seed = models.TextField(blank=True, null=True)
-        id_domain = models.IntegerField(blank=True, null=True)
-    """
-    try:
-        obj = Vulns(
-            id_domain = id_domain,
-            url = url,
-            vuln_name = vuln_name,
-            headers_string = param["headers_string"] if "headers_string" in param else "",
-            method = param["method"] if "method" in param else "",
-            delta_time = param["delta_time"] if "delta_time" in param else "",
-            severity = param["severity"] if "severity" in param else "",
-            checks = param["checks"] if "checks" in param else "",
-            proof = param["proof"] if "proof" in param else "",
-            seed = param["seed"] if "seed" in param else "",
-
-        )
-        obj.save()
-    except Exception as e:
-        logger.error("[save_vuln_to_db] [reason={}]".format(repr(e)))
-
-
-
-
 def format_url(url):
     try:
         s = url.find('://')
@@ -1304,6 +1166,551 @@ def cms_guess(urlqueue, threadnum=10):
         t.join()
 
 
+
+def save2sql(sql):
+    try:
+        s = MySQLUtils()
+        s.insert(sql)
+        s.close()
+    except Exception as e:
+        logger.error('Save2Sql Error Happend: {}'.format(repr(e)))
+
+
+
+
+
+STATIC_EXT = ["f4v","bmp","bz2","css","doc","eot","flv","gif"]
+STATIC_EXT += ["gz","ico","jpeg","jpg","js","less","mp3", "mp4"]
+STATIC_EXT += ["pdf","png","rar","rtf","swf","tar","tgz","txt","wav","woff","xml","zip"]
+
+
+BLACK_LIST_PATH = ['logout', 'log-out', 'log_out']
+
+
+BLACK_LIST_HOST = ['safebrowsing.googleapis.com', 'shavar.services.mozilla.com',]
+BLACK_LIST_HOST += ['detectportal.firefox.com', 'aus5.mozilla.org', 'incoming.telemetry.mozilla.org',]
+BLACK_LIST_HOST += ['incoming.telemetry.mozilla.org', 'addons.g-fox.cn', 'offlintab.firefoxchina.cn',]
+BLACK_LIST_HOST += ['services.addons.mozilla.org', 'g-fox.cn', 'addons.firefox.com.cn',]
+BLACK_LIST_HOST += ['versioncheck-bg.addons.mozilla.org', 'firefox.settings.services.mozilla.com']
+BLACK_LIST_HOST += ['blocklists.settings.services.mozilla.com', 'normandy.cdn.mozilla.net']
+BLACK_LIST_HOST += ['activity-stream-icons.services.mozilla.com', 'ocsp.digicert.com']
+BLACK_LIST_HOST += ['safebrowsing.clients.google.com', 'safebrowsing-cache.google.com', 'localhost']
+BLACK_LIST_HOST += ['127.0.0.1']
+
+class TURL(object):
+    """docstring for TURL"""
+    def __init__(self, url):
+        super(TURL, self).__init__()
+        self.url = url
+        self.format_url()
+        self.parse_url()
+        if ':' in self.netloc:
+            tmp = self.netloc.split(':')
+            self.host = tmp[0]
+            self.port = int(tmp[1])
+        else:
+            self.host = self.netloc
+            self.port = 80
+        if self.start_no_scheme:
+            self.scheme_type()
+
+        self.final_url = ''
+        self.url_string()
+
+    def parse_url(self):
+        parsed_url = urlparse.urlparse(self.url)
+        self.scheme, self.netloc, self.path, self.params, self.query, self.fragment = parsed_url
+
+    def format_url(self):
+        if (not self.url.startswith('http://')) and (not self.url.startswith('https://')):
+            self.url = 'http://' + self.url
+            self.start_no_scheme = True
+        else:
+            self.start_no_scheme = False
+
+    def scheme_type(self):
+        if is_http(self.host, self.port) == 'http':
+            self.scheme = 'http'
+
+        if is_https(self.host, 443) == 'https':
+            self.scheme = 'https'
+            self.port = 443
+
+    @property
+    def get_host(self):
+        return self.host
+
+    @property
+    def get_port(self):
+        return self.port
+
+    @property
+    def get_scheme(self):
+        return self.scheme
+
+    @property
+    def get_path(self):
+        return self.path
+
+    @property
+    def get_query(self):
+        """
+        return query
+        """
+        return self.query
+
+    @property
+    def get_dict_query(self):
+        """
+        return the dict type query
+        """
+        return dict(urlparse.parse_qsl(self.query))
+
+    @get_dict_query.setter
+    def get_dict_query(self, dictvalue):
+        if not isinstance(dictvalue, dict):
+            raise Exception('query must be a dict object')
+        else:
+            self.query = urllib.urlencode(dictvalue)
+
+    @property
+    def get_filename(self):
+        """
+        return url filename
+        """
+        return self.path[self.path.rfind('/')+1:]
+
+    @property
+    def get_ext(self):
+        """
+        return ext file type
+        """
+        fname = self.get_filename
+        ext = fname.split('.')[-1]
+        if ext == fname:
+            return ''
+        else:
+            return ext
+
+    def is_ext_static(self):
+        """
+        judge if the ext in static file list
+        """
+        if self.get_ext in STATIC_EXT:
+            return True
+        else:
+            return False
+
+    def is_block_path(self):
+        """
+        judge if the path in black_list_path
+        """
+        for p in BLACK_LIST_PATH:
+            if p in self.path:
+                return True
+        else:
+            return False
+
+    def url_string(self):
+        data = (self.scheme, self.netloc, self.path, self.params, self.query, self.fragment)
+        url = urlparse.urlunparse(data)
+        self.final_url = url
+        return url
+
+    def __str__(self):
+        return self.final_url
+
+    def __repr__(self):
+        return '<TURL for %s>' % self.final_url
+
+
+
+def LogUtil(path='/tmp/webscanner.log', name='test'):
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+
+    #create formatter
+    formatter = logging.Formatter(fmt=u'[%(asctime)s] [%(levelname)s] [%(funcName)s] %(message)s ')
+
+    # create console
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+
+    # create file
+    file_handler = logging.FileHandler(path, encoding='utf-8')
+    console_handler.setFormatter(formatter)
+
+    logger.addHandler(console_handler)
+    logger.addHandler(file_handler)
+    return logger
+
+
+
+
+class THTTPJOB(object):
+    """docstring for THTTPJOB"""
+    def __init__(self,
+                url,
+                method='GET',
+                data=None,
+                files=False,
+                filename='',
+                filetype='image/png',
+                headers=None,
+                block_static=True,
+                block_path = True,
+                allow_redirects=False,
+                verify=False,
+                timeout = 10,
+                is_json=False,
+                time_check=True):
+        """
+        :url: the url to requests,
+        :method: the method to request, GET/POST,
+        :data: if POST, this is the post data, if upload file, this be the file content
+        :files: if upload files, this param is True
+        :filename: the upload filename
+        :filetype: the uplaod filetype
+        :headers: the request headers, it's a dict type,
+        :block_static: if true, will not request the static ext url
+        :block_path: if true, will not request the path in BLACK_LIST_PATH
+        :allow_redirects: if the requests will auto redirects
+        :verify: if verify the cert
+        :timeout: the request will raise error if more than timeout
+        :is_json: if the data is json
+        :time_check: if return the check time
+        """
+        super(THTTPJOB, self).__init__()
+        if isinstance(url, TURL):
+            self.url = url
+        else:
+            self.url = TURL(url)
+
+        self.method = method
+        self.data = data
+        self.files = files
+        self.filename = filename
+        self.filetype = filetype
+        # self.connect_error = False
+        self.block_path = block_path
+        self_headers = {
+            'User-Agent': ('Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko)'
+                'Chrome/38.0.2125.111 Safari/537.36 IQIYI Cloud Security Scanner tp_cloud_security[at]qiyi.com'),
+            'Connection': 'close',
+        }
+        self.ConnectionErrorCount = 0
+        self.headers = headers if headers else self_headers
+        self.block_static = block_static
+        self.allow_redirects = allow_redirects
+        self.verify = verify
+        self.is_json = is_json
+        self.timeout = timeout
+        if self.method == 'GET':
+            self.request_param_dict = self.url.get_dict_query
+        else:
+            if self.is_json:
+                self.request_param_dict = json.loads(self.data)
+            else:
+                self.request_param_dict = dict(urlparse.parse_qsl(self.data))
+
+
+    def request(self):
+        """
+        return status_code, headers, htmlm, time_check
+        """
+        if self.block_static and self.url.is_ext_static():
+            self.response = requests.Response()
+            return -1, {}, '', 0
+        elif self.block_path and self.url.is_block_path():
+
+            self.response = requests.Response()
+            return -1, {}, '', 0
+        elif self.url.get_host in BLACK_LIST_HOST:
+            # print "found {} in black list host".format(self.url.get_host)
+            self.response = requests.Response()
+            return -1, {}, '', 0
+        elif self.ConnectionErrorCount >=3 :
+            return -1, {}, '', 0
+
+        else:
+            start_time = time.time()
+            try:
+                if self.method == 'GET':
+                    self.url.get_dict_query = self.request_param_dict
+                    self.response = requests.get(
+                        self.url.url_string(),
+                        headers = self.headers,
+                        allow_redirects = self.allow_redirects,
+                        verify = self.verify,
+                        timeout = self.timeout,
+                        )
+                    end_time = time.time()
+                else:
+                    if not self.files:
+                        self.data = self.request_param_dict
+                        self.response = requests.post(
+                            self.url.url_string(),
+                            data = self.data,
+                            headers = self.headers,
+                            verify = self.verify,
+                            allow_redirects = self.allow_redirects,
+                            timeout = self.timeout,
+                            )
+                    else:
+                        # print "------------------"
+                        f = {'file' : (self.filename, self.data, self.filetype)}
+                        self.response = requests.post(
+                            self.url.url_string(),
+                            files=f,
+                            headers=self.headers,
+                            verify=False,
+                            allow_redirects=self.allow_redirects,
+                            # proxies={'http': '127.0.0.1:8080'},
+                            timeout=self.timeout,
+                            )
+                    end_time = time.time()
+            except Exception as e:
+                print "[lib.common] [THTTPJOB.request] {}".format(repr(e))
+                end_time = time.time()
+                self.ConnectionErrorCount += 1
+                return -1, {}, '', 0
+            self.time_check = end_time - start_time
+            return self.response.status_code, self.response.headers, self.response.text, self.time_check
+
+    def __str__(self):
+        return "[THTTPOBJ] method={} url={} data={}".format(self.method, self.url.url_string(), self.data )
+
+
+
+
+
+def is_http(url, port=None):
+    """
+    judge if the url is http service
+    :url  the host, like www.iqiyi.com, without scheme
+    """
+    if port is None: port = 80
+    service = ''
+    try:
+        conn = httplib.HTTPConnection(url, port, timeout=10)
+        conn.request('HEAD', '/')
+        conn.close()
+        service = 'http'
+    except Exception as e:
+        print "[lib.common] [is_http] {}".format(repr(e))
+
+    return service
+
+def is_https(url, port=None):
+    """
+    judge if the url is https request
+    :url  the host, like www.iqiyi.com, without scheme
+    """
+    ssl._create_default_https_context = ssl._create_unverified_context
+    if port is None: port = 443
+    service = ''
+    try:
+        conn = httplib.HTTPSConnection(url, port, timeout=10)
+        conn.request('HEAD', '/')
+        conn.close()
+        service = 'https'
+    except Exception as e:
+        print "[lib.common] [is_http] {}".format(repr(e))
+
+    return service
+
+
+def is_json(data):
+    if not data:
+        return False
+    try:
+        json.loads(data)
+        return True
+    except:
+        return False
+
+
+class Pollution(object):
+    """
+    this class aim to use the payload
+    to the param in requests
+    """
+    def __init__(self, query, payloads, pollution_all=False, isjson=False, replace=True):
+        """
+        :query: the url query part
+        :payloads:  List, the payloads to added in params
+        :data: if url is POST, the data is the post data
+        """
+        self.payloads = payloads
+        self.query = query
+        self.isjson = isjson
+        self.replace = replace
+        self.pollution_all = pollution_all
+        self.polluted_urls = []
+
+        if type(self.payloads) != list:
+            self.payloads = [self.payloads,]
+
+    def pollut(self):
+        if self.isjson:
+            query_dict = dict(urlparse.parse_qsl(self.query, keep_blank_values=True))
+        else:
+            query_dict = dict(urlparse.parse_qsl(self.query, keep_blank_values=True))
+
+        for key in query_dict.keys():
+            for payload in self.payloads:
+                tmp_qs = query_dict.copy()
+                if self.replace:
+                    tmp_qs[key] = payload
+                else:
+                    tmp_qs[key] = tmp_qs[key] + payload
+                self.polluted_urls.append(tmp_qs)
+
+    def payload_generate(self):
+        #print self.payloads
+        if self.pollution_all:
+            pass
+        else:
+            self.pollut()
+            return self.polluted_urls
+
+
+
+
+
+
+class Url:
+
+    @staticmethod
+    def url_parse(url):
+        return urlparse.urlparse(url)
+
+    @staticmethod
+    def url_unparse(data):
+        scheme, netloc, url, params, query, fragment = data
+        if params:
+            url = "%s;%s" % (url, params)
+        return urlparse.urlunsplit((scheme, netloc, url, query, fragment))
+
+    @staticmethod
+    def qs_parse(qs):
+        return dict(urlparse.parse_qsl(qs, keep_blank_values=True))
+
+    @staticmethod
+    def build_qs(qs):
+        return urllib.urlencode(qs).replace('+', '%20')
+
+    @staticmethod
+    def urldecode(qs):
+        return urllib.unquote(qs)
+
+    @staticmethod
+    def urlencode(qs):
+        return urllib.quote(qs)
+
+
+class MySQLUtils():
+    host = '127.0.0.1'
+    port = 3306
+    username = 'root'
+    password = ''
+    db = 'scan'
+
+    def __init__(self):
+        self.conn = pymysql.connect(host=MySQLUtils.host,
+                             user=MySQLUtils.username,
+                             password=MySQLUtils.password,
+                             charset='utf8mb4',
+                             db=MySQLUtils.db)
+
+    def insert(self, sql):
+        with self.conn.cursor() as cursor:
+            cursor.execute(sql)
+            self.conn.commit()
+
+    def fetchone(self, sql):
+        data = ''
+        with self.conn.cursor() as cursor:
+            cursor.execute(sql)
+            data = cursor.fetchone()
+        return data
+
+    def fetchall(self, sql):
+        data = []
+        with self.conn.cursor() as cursor:
+            cursor.execute(sql)
+            data = cursor.fetchall()
+        return data
+
+    def close(self):
+        self.conn.close()
+
+
+def random_str(length=8):
+    s = string.lowercase + string.uppercase + string.digits
+    return "".join(random.sample(s, length))
+
+
+REDIS_DB = '0'
+REDIS_HOST = '127.0.0.1'
+REDIS_PASSWORD = ''
+SQLI_TIME_QUEUE = 'time:queue'
+
+class RedisUtil(object):
+    def __init__(self, db, host, password='', port=6379):
+        self.db = db
+        self.host = host
+        self.password = password
+        # self.taskqueue = taskqueue
+        self.port = port
+        self.connect()
+
+    def connect(self):
+        try:
+            self.conn = redis.StrictRedis(
+                host=self.host,
+                port=self.port,
+                db=self.db,
+                password=self.password
+            )
+        except Exception as e:
+            print repr(e)
+            print "RedisUtil Connection Error"
+            self.conn = None
+        # finally:
+            # return conn
+
+
+    @property
+    def is_connected(self):
+        try:
+            if self.conn.ping():
+                return True
+        except:
+            print "RedisUtil Object Not Connencd"
+            return False
+
+
+    def task_push(self, queue, data):
+        self.conn.lpush(queue, (data))
+
+    def task_fetch(self, queue):
+        return self.conn.lpop(queue)
+
+
+    @property
+    def task_count(self, queue):
+        return self.conn.llen(queue)
+
+
+    def set_exist(self, setqueue, key):
+        return self.conn.sismember(setqueue, key)
+
+    def set_push(self, setqueue, key):
+        self.conn.sadd(setqueue, key)
+
+    #def close(self):
+    #    self.conn.close()
 
 
 if __name__ == '__main__':

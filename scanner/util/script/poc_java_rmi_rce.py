@@ -2,10 +2,8 @@
 import socket
 import binascii
 import time
-from config import is_port_open
 
 
-@is_port_open
 def verify(ip, port=1099, name=None, timeout=10):
     info = {
         "url": "RMI://{}:{}".format(ip, port),

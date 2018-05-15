@@ -114,7 +114,7 @@ def sensitivescan(ip, port, id_domain):
 
 
 
-@shared_task(time_limit=200)
+@shared_task(time_limit=600)
 def pocverify(id_domain):
     """
     this is aim to use script to scan th ip address to detect

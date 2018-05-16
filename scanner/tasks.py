@@ -37,17 +37,17 @@ def task_masscan(ip_cidr, id_domain, port=None):
 
         x = parse_masscan_xml(content)  # (ip, port, name, banner)
         s = MySQLUtils()
-        check_exist_sql = 'select * from port_table where ip={ip} and port={port} and id_domain={id_domain}'
-        update_masscan_sql = 'update port_table set name={name}, product={banner} where id={id}'
-        insert_masscan_sql = 'insert into port_table (ip, port, name, product, id_domain) values ({ip}, {port}, {name}, {product}, {id_domain})'
+        check_exist_sql = "select * from port_table where ip='{ip}' and port='{port}' and id_domain='{id_domain}'"
+        update_masscan_sql = "update port_table set name='{name}', product='{banner}' where id={id}"
+        insert_masscan_sql = "insert into port_table (ip, port, name, product, id_domain) values ('{ip}', '{port}', '{name}', '{product}', '{id_domain}')"
         for item in x:
             ip, port, name, banner = item
             try:
                 data = s.fetchone(check_exist_sql.format(ip=ip, port=port, id_domain=id_domain))
                 if data:
-                    s.insert(update_masscan_sql.format(name=name, banner=banner, id=data[0]))
+                    s.insert(update_masscan_sql.format(name=pymysql.escape_string(name), banner=pymysql.escape_string(banner), id=data[0]))
                 else:
-                    s.insert(insert_masscan_sql.format(ip=ip, port=port, name=name, product=banner, id_domain=id_domain))
+                    s.insert(insert_masscan_sql.format(ip=ip, port=port, name=pymysql.escape_string(name), product=pymysql.escape_string(banner), id_domain=id_domain))
             except Exception as e:
                 logger.error("save masscan error for reason={}".format(repr(e)))
         s.close()
@@ -105,7 +105,7 @@ def sensitivescan(ip, port, id_domain):
                 break
             url = result.get()
             vuln_name = "sensitive infomation"
-            save2sql(insert_vuln_sql.format(id_domain=id_domain, url=url, vuln_name=vuln_name, severity='low'))
+            save2sql(insert_vuln_sql.format(id_domain=id_domain, url=pymysql.escape_string(url), vuln_name=pymysql.escape_string(vuln_name), severity='low'))
             # save_vuln_to_db(id_domain, url, vuln_name, severity="low")
             count += 1
     except Exception as e:

@@ -259,11 +259,19 @@ def nmap_scan_job(ipportqueue, id_domain, arguments=None):
                         check_if_exist = 'select * from port_table where ip={} and port={} and id_domain={}'
                         data = s.fetchone(check_if_exist.format(ip, port, id_domain))
                         if data:
-                            update_nmap_result = 'update port_table set protocol = {}, name={}, product={}, extrainfo={}, version={}, conf={} where id={}'
-                            s.insert(update_nmap_result.format(protocol, name, product, extrainfo, version, conf, data[0]))
+                            update_nmap_result = "update port_table set protocol = {}, name='{}', product='{}', extrainfo='{}', version='{}', conf='{}' where id={}"
+                            s.insert(update_nmap_result.format(pymysql.escape_string(protocol), pymysql.escape_string(name), pymysql.escape_string(product), pymysql.escape_string(extrainfo), pymysql.escape_string(version), pymysql.escape_string(conf), data[0]))
                         else:
-                            insert_nmap_result = 'insert into port_table (ip, port, protocol, name, product, extrainfo, version, conf, id_domain) values ({ip}, {port}, {protocol}, {name}, {product}, {extrainfo}, {version}, {conf}, {id_domain})'
-                            s.insert(insert_nmap_result.format(ip=ip, port=port, protocol=protocol, name=name, product=product, extrainfo=extrainfo, version=version, conf=conf, id_domain=id_domain))
+                            insert_nmap_result = "insert into port_table (ip, port, protocol, name, product, extrainfo, version, conf, id_domain) values ('{ip}', '{port}', '{protocol}', '{name}', '{product}', '{extrainfo}', '{version}', '{conf}', '{id_domain}')"
+                            s.insert(insert_nmap_result.format(ip=ip, 
+                                port=port, 
+                                protocol=pymysql.escape_string(protocol), 
+                                name=pymysql.escape_string(name), 
+                                product=pymysql.escape_string(product), 
+                                extrainfo=pymysql.escape_string(extrainfo), 
+                                version=pymysql.escape_string(version), 
+                                conf=pymysql.escape_string(conf), 
+                                id_domain=id_domain))
                     except Exception as e:
                         logger.error("insert/update nmap result error={}".format(repr(e)))
                     finally:
@@ -407,7 +415,7 @@ def fetch_title_work(objqueue):
             title = escape(title)
             print "[title={}]".format(title)
             update_httptitle_to_database = 'update port_table set httptitle=\'{}\' where id={}'
-            save2sql(update_httptitle_to_database.format(title, portobjid))
+            save2sql(update_httptitle_to_database.format(pymysql.escape_string(title), portobjid))
 
         except Exception as e:
             logger.error("[fetch_title_work] [reason={}]".format(repr(e)))
@@ -468,10 +476,10 @@ class PocPlugin(object):
                         if res and len(res) == 2 and res[0]:
                             result = audit(res[1])
                             if result:
-                                save2sql(insert_vuln_sql.format(url=result['url'],
-                                    vuln_name=result['vuln_name'],
+                                save2sql(insert_vuln_sql.format(url=pymysql.escape_string(result['url']),
+                                    vuln_name=pymysql.escape_string(result['vuln_name']),
                                     severity=result['severity'],
-                                    proof=result['proof']))
+                                    proof=pymysql.escape_string(result['proof'])))
                 else:
                     # if obj.cmstype is None， means it's not http service
                     if obj.name:
@@ -480,29 +488,28 @@ class PocPlugin(object):
                         if res and len(res) == 2 and res[0]:
                             result = audit(res[1])
                             if result:
-                                save2sql(insert_vuln_sql.format(url=result['url'],
-                                    vuln_name=result['vuln_name'],
+                                save2sql(insert_vuln_sql.format(url=pymysql.escape_string(result['url']),
+                                    vuln_name=pymysql.escape_string(result['vuln_name']),
                                     severity=result['severity'],
-                                    proof=result['proof']))
+                                    proof=pymysql.escape_string(result['proof'])))
                     else:
                         # if not recognize the service name, pass ip
                         res = assign('ip', obj.ip)
                         if res and len(res) == 2 and res[0]:
                             result = audit(res[1])
                             if  result:
-                                save2sql(insert_vuln_sql.format(url=result['url'],
-                                    vuln_name=result['vuln_name'],
+                                save2sql(insert_vuln_sql.format(url=pymysql.escape_string(result['url']),
+                                    vuln_name=pymysql.escape_string(result['vuln_name']),
                                     severity=result['severity'],
-                                    proof=result['proof']))
+                                    proof=pymysql.escape_string(result['proof'])))
 
             for vfunc in self.verifyfuncs:
                 _r = vfunc(obj.ip, obj.port, obj.name)
                 if _r:
-                    save2sql(insert_vuln_sql.format(url=result['url'],
-                        vuln_name=result['vuln_name'],
+                    save2sql(insert_vuln_sql.format(url=pymysql.escape_string(result['url']),
+                        vuln_name=pymysql.escape_string(result['vuln_name']),
                         severity=result['severity'],
-                        proof=result['proof']))
-
+                        proof=pymysql.escape_string(result['proof'])))
 
 
     def scan(self, threadnum=10):

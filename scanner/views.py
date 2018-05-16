@@ -89,7 +89,7 @@ def createtask(request):
 
     #print ip_cidr
     try:
-        for i in ip_cidr:
+        for i in ip_cidr[:2]:
             if i:
                 task_masscan.delay(i, id_domain)
     except Exception as e:

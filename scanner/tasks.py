@@ -21,14 +21,14 @@ def task_masscan(ip_cidr, id_domain, port=None):
     :rtype: None
     """
     if sys.platform.find("win") > 0:
-        mas = os.path.join(MASSCAN_LOC, "masscan.exe")
+        mas = os.path.join(MASSCAN_LOC_WIN, "masscan.exe")
     else:
         mas = os.path.join(MASSCAN_LOC, "masscan")
 
     if port is None:
         port = TARGET_PORTS
 
-    command = "{mas} {ip_cidr} -p {port} --open --banners --rate 1000 -oX -".format(mas=mas, ip_cidr=ip_cidr, port=port)
+    command = "{mas} {ip_cidr} -p {port} --open --banners --rate 2000 -oX -".format(mas=mas, ip_cidr=ip_cidr, port=port)
 
     content = masscan_work(command)
     #print "masscan_result = {}".format(content)

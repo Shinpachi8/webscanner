@@ -256,14 +256,14 @@ def nmap_scan_job(ipportqueue, id_domain, arguments=None):
                     # if port in databases, then update, else insert
                     try:
                         s = MySQLUtils()
-                        check_if_exist = 'select * from port_table where ip={} and port={} and id_domain={}'
+                        check_if_exist = 'select * from port_table where ip=\'{}\' and port=\'{}\' and id_domain={}'
                         data = s.fetchone(check_if_exist.format(ip, port, id_domain))
                         if data:
-                            update_nmap_result = "update port_table set protocol = {}, name='{}', product='{}', extrainfo='{}', version='{}', conf='{}' where id={}"
+                            update_nmap_result = "update port_table set protocol=\'{}\', name='{}', product='{}', extrainfo='{}', version='{}', conf='{}' where id={}"
                             s.insert(update_nmap_result.format(pymysql.escape_string(protocol), pymysql.escape_string(name), pymysql.escape_string(product), pymysql.escape_string(extrainfo), pymysql.escape_string(version), pymysql.escape_string(conf), data[0]))
                         else:
                             insert_nmap_result = "insert into port_table (ip, port, protocol, name, product, extrainfo, version, conf, id_domain) values ('{ip}', '{port}', '{protocol}', '{name}', '{product}', '{extrainfo}', '{version}', '{conf}', '{id_domain}')"
-                            s.insert(insert_nmap_result.format(ip=ip, 
+                            s.insert(insert_nmap_result.format(ip=pymysql_escape_string(ip), 
                                 port=port, 
                                 protocol=pymysql.escape_string(protocol), 
                                 name=pymysql.escape_string(name), 

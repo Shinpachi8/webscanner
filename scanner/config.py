@@ -8,6 +8,7 @@ import logging
 
 MASSCAN_THEAD_NUM = 3
 MASSCAN_LOC = "/usr/bin/"
+MASSCAN_LOC_WIN = 'c:\\Program Files\\masscan\\'
 
 TARGET_PORTS = '1-65535'
 DEBUG = True

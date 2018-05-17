@@ -348,3 +348,6 @@
 /log.tar.bz2
 /log.7z
 /ews/
+/env
+/.env
+/.ssh/

@@ -175,13 +175,13 @@ def scandomain(request):
     httplist = []
     for obj in portobjs:
         ip, port, name = obj
-        iplist.add(ip)
+        #iplist.add(ip)
         #if is_http(ip, port) == 'http':
-        if str(port) in ("443", "8443") or (name.find("https") > -1) or (name.find('ssl') > -1):
-            h = "https://{}:{}".format(ip, port)
-        else:
-            h = "http://{}:{}".format(ip, port)
-            httplist.append((ip, port))
+        #if str(port) in ("443", "8443") or (name.find("https") > -1) or (name.find('ssl') > -1):
+        #    h = "https://{}:{}".format(ip, port)
+        #else:
+        #    h = "http://{}:{}".format(ip, port)
+        httplist.append((ip, port))
 
     # pocverify.delay(id_domain)
 

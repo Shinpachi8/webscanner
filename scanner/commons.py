@@ -263,14 +263,14 @@ def nmap_scan_job(ipportqueue, id_domain, arguments=None):
                             s.insert(update_nmap_result.format(pymysql.escape_string(protocol), pymysql.escape_string(name), pymysql.escape_string(product), pymysql.escape_string(extrainfo), pymysql.escape_string(version), pymysql.escape_string(conf), data[0]))
                         else:
                             insert_nmap_result = "insert into port_table (ip, port, protocol, name, product, extrainfo, version, conf, id_domain) values ('{ip}', '{port}', '{protocol}', '{name}', '{product}', '{extrainfo}', '{version}', '{conf}', '{id_domain}')"
-                            s.insert(insert_nmap_result.format(ip=pymysql_escape_string(ip), 
-                                port=port, 
-                                protocol=pymysql.escape_string(protocol), 
-                                name=pymysql.escape_string(name), 
-                                product=pymysql.escape_string(product), 
-                                extrainfo=pymysql.escape_string(extrainfo), 
-                                version=pymysql.escape_string(version), 
-                                conf=pymysql.escape_string(conf), 
+                            s.insert(insert_nmap_result.format(ip=pymysql_escape_string(ip),
+                                port=port,
+                                protocol=pymysql.escape_string(protocol),
+                                name=pymysql.escape_string(name),
+                                product=pymysql.escape_string(product),
+                                extrainfo=pymysql.escape_string(extrainfo),
+                                version=pymysql.escape_string(version),
+                                conf=pymysql.escape_string(conf),
                                 id_domain=id_domain))
                     except Exception as e:
                         logger.error("insert/update nmap result error={}".format(repr(e)))
@@ -1732,7 +1732,9 @@ if __name__ == '__main__':
     # nmap_work(a, b)
     # while not b.empty():
     #     print b.get()
-    a = InfoLeakScan("http://211.151.158.132")
-    a.scan()
-    while not a.result.empty():
-        print a.result.get()
+    #a = InfoLeakScan("http://211.151.158.132")
+    #a.scan()
+    #while not a.result.empty():
+    #    print a.result.get()
+    print is_http('www.iqiyi.com')
+    print is_https('top.iqiyi.com')

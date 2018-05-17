@@ -80,7 +80,7 @@ def nmap_scan(ipportqueue, id_domain):
     nmap_work(ipportqueue, id_domain)
 
 
-@shared_task(time_limit=200)
+@shared_task(time_limit=600)
 def sensitivescan(ip, port, id_domain):
 
     try:
@@ -98,7 +98,7 @@ def sensitivescan(ip, port, id_domain):
         result = scanobj.result
         count = 0
         print "[sensitive_task] [url={}] [result.qsize] = {}".format(url, result.qsize())
-        insert_vuln_sql = 'insert into vulns (id_domain, url, vuln_name, serverity) values ("{id_domain}", "{url}", "{vuln_name}", ""{severity}")'
+        insert_vuln_sql = 'insert into vulns (id_domain, url, vuln_name, severity) values ("{id_domain}", "{url}", "{vuln_name}", "{severity}")'
         while not result.empty():
             if count > 10:
                 result.queue.clear()
@@ -114,7 +114,7 @@ def sensitivescan(ip, port, id_domain):
 
 
 
-@shared_task(time_limit=600)
+@shared_task(time_limit=3000)
 def pocverify(id_domain):
     """
     this is aim to use script to scan th ip address to detect

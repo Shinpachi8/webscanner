@@ -20,7 +20,7 @@ from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.core.paginator import Paginator
 from cgi import escape
-from tasks import task_masscan, nmap_scan, get_title, sensitivescan, pocverify, CMSGuess
+from tasks import task_masscan, nmap_scan, get_title, sensitivescan, pocverify, CMSGuess, create_to_database
 from models import *
 from commons import *
 
@@ -85,15 +85,15 @@ def createtask(request):
         # logger.info("[createtask] ip_cidr={}".format(ip_cidr))
     if ips not in ip_cidr:
         ip_cidr.extend(ips)
-
+    create_to_database.delay(ip_cidr[:2], id_domain)
 
     #print ip_cidr
-    try:
-        for i in ip_cidr[:2]:
-            if i:
-                task_masscan.delay(i, id_domain)
-    except Exception as e:
-        return Http404("IP CIDRS MUST BE A LIST BOJECTS")
+    # try:
+    #     for i in ip_cidr[:2]:
+    #         if i:
+    #             task_masscan.delay(i, id_domain)
+    # except Exception as e:
+    #     return Http404("IP CIDRS MUST BE A LIST BOJECTS")
 
     return redirect(reverse("index"))
     # first save it to databases and the use masscan to scan
@@ -208,11 +208,13 @@ def nmapscan(request):
         return redirect("/")
     domainid = request.GET.get("id")
     portobjs = PortTable.objects.filter(id_domain=domainid)
-    portqueue = []
+    portqueue = set()
     id_domain = int(domainid)
     for obj in portobjs:
-        o = (obj.ip, obj.port)
-        portqueue.append(o)
+        # o = (obj.ip, obj.port)
+        portqueue.add(obj.ip)
+    
+    portqueue=list(portqueue)
 
     #return HttpResponse(str(portqueue))
     nmap_scan.delay(portqueue, id_domain)

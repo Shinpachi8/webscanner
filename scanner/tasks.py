@@ -3,13 +3,42 @@
 
 import sys
 import os
-import netaddr
+from netaddr import *
 from Queue import Queue
 from celery import shared_task
 from pprint import pprint
 from scanner.models import *
 from config import *
 from commons import *
+
+
+@shared_task
+def create_to_database(ip_cidr, id_domain):
+    save_sql = 'insert into port_table (ip, port, id_domain) values (\'{ip}\', 80, \'{id_domain}\')'
+    exist_sql = 'select * from port_table where id_domain=\'{id_domain}\' and ip=\'{ip}\''
+    if isinstance(ip_cidr, list):
+        pass
+    else:
+        ip_cidr = [ip_cidr,]
+    
+    conn = MySQLUtils()
+    try:
+        for ips in ip_cidr:
+            ips = IPNetwork(ips)
+            for ip in ips:
+                data = conn.fetchone(exist_sql.format(ip=pymysql.escape_string(ip), id_domain=id_domain))
+                if data:
+                    continue
+                else:
+                    conn.insert(save_sql.format(ip=pymysql.escape_string(str(ip)), id_domain=id_domain))
+    except Exception as e:
+        logger.error("[tasks] [create_to_database] error for {}".format(repr(e)))
+    finally:
+        conn.close()
+
+        
+
+
 
 
 @shared_task

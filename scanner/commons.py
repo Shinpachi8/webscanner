@@ -217,7 +217,7 @@ def parse_masscan_xml(content):
 
 
 #def nmapscan(ipportqueue, resultqueue, id_domain, arguments=None):
-def nmap_scan_job(ipportqueue, id_domain, arguments=None):
+def nmap_scan_job(ipportqueue, id_domain, scanall=True, arguments=None):
     """
     this aim to use nmap to scan the host and port to get the infomation of the
     host and it's port
@@ -233,17 +233,19 @@ def nmap_scan_job(ipportqueue, id_domain, arguments=None):
     nm = nmap.PortScanner()
     while not ipportqueue.empty():
         try:
-            host,port = ipportqueue.get()
+            host = ipportqueue.get()
             #print "[host={}] [port={}]".format(host, port)
-            nm.scan(host, str(port), arguments=arguments)
+            if scanall:
+                nm.scan(host, '1-65535', arguments=arguments)
             #print "[nm.csv()={}]".format(nm.csv())
             csv = nm.csv()
             for scan_result in csv.split("\r\n")[1:]:
                 scan_result = scan_result.split(";")
                 logger.info("[common] [nmap_scan] scan_result: {}".format(scan_result))
                 if (not len(scan_result)== 13) or (scan_result[6] != "open"):
-                    PortTable.objects.filter(ip=host).filter(port=port).filter(id_domain=id_domain).delete()
-                    #continue
+                    # PortTable.objects.filter(ip=host).filter(port=port).filter(id_domain=id_domain).delete()
+                    
+                    continue
                 else:
                     ip = scan_result[0]
                     port = scan_result[4]
@@ -259,11 +261,11 @@ def nmap_scan_job(ipportqueue, id_domain, arguments=None):
                         check_if_exist = 'select * from port_table where ip=\'{}\' and port=\'{}\' and id_domain={}'
                         data = s.fetchone(check_if_exist.format(ip, port, id_domain))
                         if data:
-                            update_nmap_result = "update port_table set protocol=\'{}\', name='{}', product='{}', extrainfo='{}', version='{}', conf='{}' where id={}"
+                            update_nmap_result = "update port_table set protocol='{}', name='{}', product='{}', extrainfo='{}', version='{}', conf='{}' where id={}"
                             s.insert(update_nmap_result.format(pymysql.escape_string(protocol), pymysql.escape_string(name), pymysql.escape_string(product), pymysql.escape_string(extrainfo), pymysql.escape_string(version), pymysql.escape_string(conf), data[0]))
                         else:
                             insert_nmap_result = "insert into port_table (ip, port, protocol, name, product, extrainfo, version, conf, id_domain) values ('{ip}', '{port}', '{protocol}', '{name}', '{product}', '{extrainfo}', '{version}', '{conf}', '{id_domain}')"
-                            s.insert(insert_nmap_result.format(ip=pymysql_escape_string(ip),
+                            s.insert(insert_nmap_result.format(ip=pymysql.escape_string(ip),
                                 port=port,
                                 protocol=pymysql.escape_string(protocol),
                                 name=pymysql.escape_string(name),

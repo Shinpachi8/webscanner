@@ -41,7 +41,7 @@ def create_to_database(ip_cidr, id_domain):
 
 
 
-@shared_task
+@shared_task(routing_key='ipscan.masscan')
 def task_masscan(ip_cidr, id_domain, port=None):
     """
     this function aim to use masscan to scan the port,
@@ -72,11 +72,11 @@ def task_masscan(ip_cidr, id_domain, port=None):
         for item in x:
             ip, port, name, banner = item
             try:
-                data = s.fetchone(check_exist_sql.format(ip=ip, port=port, id_domain=id_domain))
+                data = s.fetchone(check_exist_sql.format(ip=pymysql.escape_string(ip), port=pymysql.escape_string(port), id_domain=id_domain))
                 if data:
                     s.insert(update_masscan_sql.format(name=pymysql.escape_string(name), banner=pymysql.escape_string(banner), id=data[0]))
                 else:
-                    s.insert(insert_masscan_sql.format(ip=ip, port=port, name=pymysql.escape_string(name), product=pymysql.escape_string(banner), id_domain=id_domain))
+                    s.insert(insert_masscan_sql.format(ip=pymysql.escape_string(ip), port=pymysql.escape_string(port), name=pymysql.escape_string(name), product=pymysql.escape_string(banner), id_domain=id_domain))
             except Exception as e:
                 logger.error("save masscan error for reason={}".format(repr(e)))
         s.close()
@@ -87,8 +87,8 @@ def task_masscan(ip_cidr, id_domain, port=None):
 
 
 
-@shared_task
-def nmap_scan(ipportqueue, id_domain):
+@shared_task(routing_key='ipscan.nmap')
+def nmap_scan(id_domain):
     """
     (host          0;
     hostname       1;
@@ -106,6 +106,15 @@ def nmap_scan(ipportqueue, id_domain):
     """
     #resultqueue = Queue()
     #nmap_work(ipportqueue, resultqueue, id_domain)
+    portobjs = PortTable.objects.filter(id_domain=id_domain)
+    portqueue = set()
+    id_domain = int(id_domain)
+    for obj in portobjs:
+        o = (obj.ip, obj.port)
+        portqueue.add(o)
+    
+    portqueue=list(portqueue)
+
     nmap_work(ipportqueue, id_domain)
 
 

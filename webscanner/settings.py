@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 """
 
 import os
+from kombu import Queue
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -38,6 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'scanner',
+    # 'kombu.transport.django',
+    # 'djcelery',
 ]
 
 #MIDDLEWARE = [
@@ -146,3 +149,29 @@ CELERY_RESULT_SERIALIZER = 'json'
 
 #celery timezone
 CELERY_TIMEZONE = TIME_ZONE
+
+
+# default_exchange = Exchange('default', type='direct')
+# priority_exchange = Exchange('ipscan', type='direct')
+# set celery default queue
+CELERY_DEFAULT_QUEUE = "default"
+CELERY_DEFAULT_EXCHANGE = 'default'
+CELERY_DEFAULT_ROUTING_KEY = 'default'
+# set celery queues
+CELERY_QUEUES = (    #set queue, bind routing_key
+    Queue('ipscan', routing_key='ipscan.#'),
+    Queue('default', binding_key='default')
+    # Queue('vulnscan', routing_key='vulnscan'),
+)
+
+
+CELERY_ROUTES = ({  #put task into queue and bind the routing_key
+    'scanner.tasks.task_masscan': { 
+        'queue': 'ipscan',
+        'routing_key': 'ipscan.masscan',
+    },
+    'scanner.tasks.nmap_scan': { 
+        'queue': 'ipscan',
+        'routing_key': 'ipscan.nmap',
+    }
+})

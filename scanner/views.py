@@ -89,7 +89,7 @@ def createtask(request):
 
     #print ip_cidr
     try:
-        for i in ip_cidr[:2]:
+        for i in ip_cidr:
             if i:
                 task_masscan.delay(i, id_domain)
     except Exception as e:
@@ -217,7 +217,7 @@ def nmapscan(request):
     # portqueue=list(portqueue)
 
     #return HttpResponse(str(portqueue))
-    nmap_scan.delay(id_domain)
+    nmap_scan.delay(domainid)
     return redirect("/")
 
 

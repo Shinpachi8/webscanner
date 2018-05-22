@@ -1,0 +1,5 @@
+[2018-05-22 14:45:38,346: INFO/MainProcess] Connected to amqp://guest:**@127.0.0.1:5672//
+[2018-05-22 14:45:38,352: INFO/MainProcess] mingle: searching for neighbors
+[2018-05-22 14:45:39,370: INFO/MainProcess] mingle: all alone
+[2018-05-22 14:45:39,406: INFO/MainProcess] worker@uuqkn ready.
+[2018-05-22 14:45:39,409: INFO/MainProcess] pidbox: Connected to amqp://guest:**@127.0.0.1:5672//.

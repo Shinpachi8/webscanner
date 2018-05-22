@@ -165,7 +165,7 @@ CELERY_QUEUES = (    #set queue, bind routing_key
 )
 
 
-CELERY_ROUTES = ({  #put task into queue and bind the routing_key
+CELERY_TASK_ROUTES = ({  #put task into queue and bind the routing_key
     'scanner.tasks.task_masscan': { 
         'queue': 'ipscan',
         'routing_key': 'ipscan.masscan',

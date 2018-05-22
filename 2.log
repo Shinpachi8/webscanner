@@ -1,0 +1,169 @@
+[2018-05-22 14:45:38,147: INFO/MainProcess] Connected to amqp://guest:**@127.0.0.1:5672//
+[2018-05-22 14:45:38,153: INFO/MainProcess] mingle: searching for neighbors
+[2018-05-22 14:45:39,178: INFO/MainProcess] mingle: all alone
+[2018-05-22 14:45:39,211: INFO/MainProcess] 2@uuqkn ready.
+[2018-05-22 14:45:39,213: INFO/MainProcess] Received task: scanner.tasks.task_masscan[30217e7e-add8-4385-b5b2-0f76396f69d8]  
+[2018-05-22 14:45:39,214: INFO/MainProcess] Received task: scanner.tasks.task_masscan[da8d34bc-5e6d-4297-9e07-9b2e11e46968]  
+[2018-05-22 14:45:39,215: INFO/MainProcess] Received task: scanner.tasks.task_masscan[a173b612-9ab6-4900-beb3-ea0a5c1f6e8d]  
+[2018-05-22 14:45:39,216: INFO/MainProcess] Received task: scanner.tasks.task_masscan[9af7915c-c521-4aa9-9d48-d45538b9c970]  
+[2018-05-22 14:45:39,216: INFO/MainProcess] Received task: scanner.tasks.task_masscan[06c70151-cb85-4e59-8a06-cd777850ba6b]  
+[2018-05-22 14:45:39,254: INFO/MainProcess] pidbox: Connected to amqp://guest:**@127.0.0.1:5672//.
+[2018-05-22 14:47:59,207: WARNING/MainProcess] Traceback (most recent call last):
+[2018-05-22 14:47:59,208: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/gevent/greenlet.py", line 536, in run
+[2018-05-22 14:47:59,209: WARNING/MainProcess] result = self._run(*self.args, **self.kwargs)
+[2018-05-22 14:47:59,209: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/async/timer.py", line 68, in __call__
+[2018-05-22 14:47:59,246: WARNING/MainProcess] return self.fun(*self.args, **self.kwargs)
+[2018-05-22 14:47:59,246: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/async/timer.py", line 127, in _reschedules
+[2018-05-22 14:47:59,246: WARNING/MainProcess] return fun(*args, **kwargs)
+[2018-05-22 14:47:59,246: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/connection.py", line 290, in heartbeat_check
+[2018-05-22 14:47:59,247: WARNING/MainProcess] return self.transport.heartbeat_check(self.connection, rate=rate)
+[2018-05-22 14:47:59,247: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/transport/pyamqp.py", line 149, in heartbeat_check
+[2018-05-22 14:47:59,252: WARNING/MainProcess] return connection.heartbeat_tick(rate=rate)
+[2018-05-22 14:47:59,252: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/amqp/connection.py", line 704, in heartbeat_tick
+[2018-05-22 14:47:59,253: WARNING/MainProcess] raise ConnectionForced('Too many heartbeats missed')
+[2018-05-22 14:47:59,253: WARNING/MainProcess] ConnectionForced: Too many heartbeats missed
+[2018-05-22 14:47:59,254: WARNING/MainProcess] Tue May 22 14:47:59 2018
+[2018-05-22 14:47:59,254: WARNING/MainProcess] <_Greenlet at 0x7f3a0a2cd230: <TimerEntry: heartbeat_check(*(3.0,), **{})> failed with ConnectionForced
+[2018-05-22 14:48:19,210: WARNING/MainProcess] Traceback (most recent call last):
+[2018-05-22 14:48:19,210: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/gevent/greenlet.py", line 536, in run
+[2018-05-22 14:48:19,210: WARNING/MainProcess] result = self._run(*self.args, **self.kwargs)
+[2018-05-22 14:48:19,210: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/async/timer.py", line 68, in __call__
+[2018-05-22 14:48:19,210: WARNING/MainProcess] return self.fun(*self.args, **self.kwargs)
+[2018-05-22 14:48:19,211: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/async/timer.py", line 127, in _reschedules
+[2018-05-22 14:48:19,211: WARNING/MainProcess] return fun(*args, **kwargs)
+[2018-05-22 14:48:19,211: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/connection.py", line 290, in heartbeat_check
+[2018-05-22 14:48:19,211: WARNING/MainProcess] return self.transport.heartbeat_check(self.connection, rate=rate)
+[2018-05-22 14:48:19,211: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/transport/pyamqp.py", line 149, in heartbeat_check
+[2018-05-22 14:48:19,211: WARNING/MainProcess] return connection.heartbeat_tick(rate=rate)
+[2018-05-22 14:48:19,212: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/amqp/connection.py", line 704, in heartbeat_tick
+[2018-05-22 14:48:19,213: WARNING/MainProcess] raise ConnectionForced('Too many heartbeats missed')
+[2018-05-22 14:48:19,213: WARNING/MainProcess] ConnectionForced: Too many heartbeats missed
+[2018-05-22 14:48:19,213: WARNING/MainProcess] Tue May 22 14:48:19 2018
+[2018-05-22 14:48:19,213: WARNING/MainProcess] <_Greenlet at 0x7f3a0994a0f0: <TimerEntry: heartbeat_check(*(3.0,), **{})> failed with ConnectionForced
+[2018-05-22 14:48:39,212: WARNING/MainProcess] Traceback (most recent call last):
+[2018-05-22 14:48:39,212: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/gevent/greenlet.py", line 536, in run
+[2018-05-22 14:48:39,212: WARNING/MainProcess] result = self._run(*self.args, **self.kwargs)
+[2018-05-22 14:48:39,213: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/async/timer.py", line 68, in __call__
+[2018-05-22 14:48:39,213: WARNING/MainProcess] return self.fun(*self.args, **self.kwargs)
+[2018-05-22 14:48:39,213: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/async/timer.py", line 127, in _reschedules
+[2018-05-22 14:48:39,214: WARNING/MainProcess] return fun(*args, **kwargs)
+[2018-05-22 14:48:39,214: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/connection.py", line 290, in heartbeat_check
+[2018-05-22 14:48:39,214: WARNING/MainProcess] return self.transport.heartbeat_check(self.connection, rate=rate)
+[2018-05-22 14:48:39,215: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/transport/pyamqp.py", line 149, in heartbeat_check
+[2018-05-22 14:48:39,215: WARNING/MainProcess] return connection.heartbeat_tick(rate=rate)
+[2018-05-22 14:48:39,215: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/amqp/connection.py", line 704, in heartbeat_tick
+[2018-05-22 14:48:39,215: WARNING/MainProcess] raise ConnectionForced('Too many heartbeats missed')
+[2018-05-22 14:48:39,216: WARNING/MainProcess] ConnectionForced: Too many heartbeats missed
+[2018-05-22 14:48:39,216: WARNING/MainProcess] Tue May 22 14:48:39 2018
+[2018-05-22 14:48:39,216: WARNING/MainProcess] <_Greenlet at 0x7f3a0994a190: <TimerEntry: heartbeat_check(*(3.0,), **{})> failed with ConnectionForced
+[2018-05-22 14:48:59,213: WARNING/MainProcess] Traceback (most recent call last):
+[2018-05-22 14:48:59,213: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/gevent/greenlet.py", line 536, in run
+[2018-05-22 14:48:59,214: WARNING/MainProcess] result = self._run(*self.args, **self.kwargs)
+[2018-05-22 14:48:59,214: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/async/timer.py", line 68, in __call__
+[2018-05-22 14:48:59,214: WARNING/MainProcess] return self.fun(*self.args, **self.kwargs)
+[2018-05-22 14:48:59,214: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/async/timer.py", line 127, in _reschedules
+[2018-05-22 14:48:59,215: WARNING/MainProcess] return fun(*args, **kwargs)
+[2018-05-22 14:48:59,215: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/connection.py", line 290, in heartbeat_check
+[2018-05-22 14:48:59,215: WARNING/MainProcess] return self.transport.heartbeat_check(self.connection, rate=rate)
+[2018-05-22 14:48:59,216: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/transport/pyamqp.py", line 149, in heartbeat_check
+[2018-05-22 14:48:59,216: WARNING/MainProcess] return connection.heartbeat_tick(rate=rate)
+[2018-05-22 14:48:59,216: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/amqp/connection.py", line 704, in heartbeat_tick
+[2018-05-22 14:48:59,217: WARNING/MainProcess] raise ConnectionForced('Too many heartbeats missed')
+[2018-05-22 14:48:59,217: WARNING/MainProcess] ConnectionForced: Too many heartbeats missed
+[2018-05-22 14:48:59,217: WARNING/MainProcess] Tue May 22 14:48:59 2018
+[2018-05-22 14:48:59,217: WARNING/MainProcess] <_Greenlet at 0x7f3a0994a0f0: <TimerEntry: heartbeat_check(*(3.0,), **{})> failed with ConnectionForced
+[2018-05-22 14:49:19,213: WARNING/MainProcess] Traceback (most recent call last):
+[2018-05-22 14:49:19,214: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/gevent/greenlet.py", line 536, in run
+[2018-05-22 14:49:19,214: WARNING/MainProcess] result = self._run(*self.args, **self.kwargs)
+[2018-05-22 14:49:19,214: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/async/timer.py", line 68, in __call__
+[2018-05-22 14:49:19,214: WARNING/MainProcess] return self.fun(*self.args, **self.kwargs)
+[2018-05-22 14:49:19,215: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/async/timer.py", line 127, in _reschedules
+[2018-05-22 14:49:19,215: WARNING/MainProcess] return fun(*args, **kwargs)
+[2018-05-22 14:49:19,215: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/connection.py", line 290, in heartbeat_check
+[2018-05-22 14:49:19,215: WARNING/MainProcess] return self.transport.heartbeat_check(self.connection, rate=rate)
+[2018-05-22 14:49:19,215: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/transport/pyamqp.py", line 149, in heartbeat_check
+[2018-05-22 14:49:19,216: WARNING/MainProcess] return connection.heartbeat_tick(rate=rate)
+[2018-05-22 14:49:19,216: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/amqp/connection.py", line 704, in heartbeat_tick
+[2018-05-22 14:49:19,216: WARNING/MainProcess] raise ConnectionForced('Too many heartbeats missed')
+[2018-05-22 14:49:19,216: WARNING/MainProcess] ConnectionForced: Too many heartbeats missed
+[2018-05-22 14:49:19,217: WARNING/MainProcess] Tue May 22 14:49:19 2018
+[2018-05-22 14:49:19,217: WARNING/MainProcess] <_Greenlet at 0x7f3a0994a190: <TimerEntry: heartbeat_check(*(3.0,), **{})> failed with ConnectionForced
+[2018-05-22 14:49:39,214: WARNING/MainProcess] Traceback (most recent call last):
+[2018-05-22 14:49:39,215: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/gevent/greenlet.py", line 536, in run
+[2018-05-22 14:49:39,215: WARNING/MainProcess] result = self._run(*self.args, **self.kwargs)
+[2018-05-22 14:49:39,215: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/async/timer.py", line 68, in __call__
+[2018-05-22 14:49:39,215: WARNING/MainProcess] return self.fun(*self.args, **self.kwargs)
+[2018-05-22 14:49:39,216: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/async/timer.py", line 127, in _reschedules
+[2018-05-22 14:49:39,216: WARNING/MainProcess] return fun(*args, **kwargs)
+[2018-05-22 14:49:39,216: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/connection.py", line 290, in heartbeat_check
+[2018-05-22 14:49:39,217: WARNING/MainProcess] return self.transport.heartbeat_check(self.connection, rate=rate)
+[2018-05-22 14:49:39,217: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/transport/pyamqp.py", line 149, in heartbeat_check
+[2018-05-22 14:49:39,217: WARNING/MainProcess] return connection.heartbeat_tick(rate=rate)
+[2018-05-22 14:49:39,217: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/amqp/connection.py", line 704, in heartbeat_tick
+[2018-05-22 14:49:39,217: WARNING/MainProcess] raise ConnectionForced('Too many heartbeats missed')
+[2018-05-22 14:49:39,218: WARNING/MainProcess] ConnectionForced: Too many heartbeats missed
+[2018-05-22 14:49:39,218: WARNING/MainProcess] Tue May 22 14:49:39 2018
+[2018-05-22 14:49:39,218: WARNING/MainProcess] <_Greenlet at 0x7f3a0994a0f0: <TimerEntry: heartbeat_check(*(3.0,), **{})> failed with ConnectionForced
+[2018-05-22 14:49:59,215: WARNING/MainProcess] Traceback (most recent call last):
+[2018-05-22 14:49:59,216: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/gevent/greenlet.py", line 536, in run
+[2018-05-22 14:49:59,216: WARNING/MainProcess] result = self._run(*self.args, **self.kwargs)
+[2018-05-22 14:49:59,216: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/async/timer.py", line 68, in __call__
+[2018-05-22 14:49:59,217: WARNING/MainProcess] return self.fun(*self.args, **self.kwargs)
+[2018-05-22 14:49:59,217: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/async/timer.py", line 127, in _reschedules
+[2018-05-22 14:49:59,218: WARNING/MainProcess] return fun(*args, **kwargs)
+[2018-05-22 14:49:59,218: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/connection.py", line 290, in heartbeat_check
+[2018-05-22 14:49:59,218: WARNING/MainProcess] return self.transport.heartbeat_check(self.connection, rate=rate)
+[2018-05-22 14:49:59,218: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/transport/pyamqp.py", line 149, in heartbeat_check
+[2018-05-22 14:49:59,219: WARNING/MainProcess] return connection.heartbeat_tick(rate=rate)
+[2018-05-22 14:49:59,219: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/amqp/connection.py", line 704, in heartbeat_tick
+[2018-05-22 14:49:59,219: WARNING/MainProcess] raise ConnectionForced('Too many heartbeats missed')
+[2018-05-22 14:49:59,220: WARNING/MainProcess] ConnectionForced: Too many heartbeats missed
+[2018-05-22 14:49:59,220: WARNING/MainProcess] Tue May 22 14:49:59 2018
+[2018-05-22 14:49:59,220: WARNING/MainProcess] <_Greenlet at 0x7f3a0994a190: <TimerEntry: heartbeat_check(*(3.0,), **{})> failed with ConnectionForced
+[2018-05-22 14:50:19,216: WARNING/MainProcess] Traceback (most recent call last):
+[2018-05-22 14:50:19,216: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/gevent/greenlet.py", line 536, in run
+[2018-05-22 14:50:19,217: WARNING/MainProcess] result = self._run(*self.args, **self.kwargs)
+[2018-05-22 14:50:19,217: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/async/timer.py", line 68, in __call__
+[2018-05-22 14:50:19,217: WARNING/MainProcess] return self.fun(*self.args, **self.kwargs)
+[2018-05-22 14:50:19,217: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/async/timer.py", line 127, in _reschedules
+[2018-05-22 14:50:19,218: WARNING/MainProcess] return fun(*args, **kwargs)
+[2018-05-22 14:50:19,218: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/connection.py", line 290, in heartbeat_check
+[2018-05-22 14:50:19,218: WARNING/MainProcess] return self.transport.heartbeat_check(self.connection, rate=rate)
+[2018-05-22 14:50:19,218: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/kombu/transport/pyamqp.py", line 149, in heartbeat_check
+[2018-05-22 14:50:19,219: WARNING/MainProcess] return connection.heartbeat_tick(rate=rate)
+[2018-05-22 14:50:19,219: WARNING/MainProcess] File "/usr/local/lib/python2.7/dist-packages/amqp/connection.py", line 704, in heartbeat_tick
+[2018-05-22 14:50:19,219: WARNING/MainProcess] raise ConnectionForced('Too many heartbeats missed')
+[2018-05-22 14:50:19,219: WARNING/MainProcess] ConnectionForced: Too many heartbeats missed
+[2018-05-22 14:50:19,220: WARNING/MainProcess] Tue May 22 14:50:19 2018
+[2018-05-22 14:50:19,220: WARNING/MainProcess] <_Greenlet at 0x7f3a0994a0f0: <TimerEntry: heartbeat_check(*(3.0,), **{})> failed with ConnectionForced
+[2018-05-22 14:50:29,853: ERROR/MainProcess] [masscan_scan] reason=CalledProcessError()
+[2018-05-22 14:50:29,853: INFO/MainProcess] Task scanner.tasks.task_masscan[9af7915c-c521-4aa9-9d48-d45538b9c970] succeeded in 290.620542065s: None
+[2018-05-22 14:50:29,854: ERROR/MainProcess] [masscan_scan] reason=CalledProcessError()
+[2018-05-22 14:50:29,854: INFO/MainProcess] Task scanner.tasks.task_masscan[a173b612-9ab6-4900-beb3-ea0a5c1f6e8d] succeeded in 290.626094601s: None
+[2018-05-22 14:50:29,855: INFO/MainProcess] Received task: scanner.tasks.task_masscan[c73ccb30-2743-4d86-8e2f-7e268088eedd]  
+[2018-05-22 14:50:29,855: INFO/MainProcess] Received task: scanner.tasks.task_masscan[b6632a60-0584-40ea-8cfd-2d781e98fa36]  
+[2018-05-22 14:50:29,862: ERROR/MainProcess] [masscan_scan] reason=CalledProcessError()
+[2018-05-22 14:50:29,862: INFO/MainProcess] Task scanner.tasks.task_masscan[da8d34bc-5e6d-4297-9e07-9b2e11e46968] succeeded in 290.640058738s: None
+[2018-05-22 14:50:29,863: ERROR/MainProcess] [masscan_scan] reason=CalledProcessError()
+[2018-05-22 14:50:29,863: INFO/MainProcess] Task scanner.tasks.task_masscan[30217e7e-add8-4385-b5b2-0f76396f69d8] succeeded in 290.646225044s: None
+[2018-05-22 14:50:29,864: INFO/MainProcess] Received task: scanner.tasks.task_masscan[9e84532e-bdfe-4110-9dd0-c2bd6fb2add7]  
+[2018-05-22 14:50:29,865: INFO/MainProcess] Received task: scanner.tasks.task_masscan[a16c66b9-f13c-429d-930b-964c29b81b96]  
+[2018-05-22 14:51:01,705: ERROR/MainProcess] [masscan_scan] reason=CalledProcessError()
+[2018-05-22 14:51:01,706: INFO/MainProcess] Task scanner.tasks.task_masscan[9e84532e-bdfe-4110-9dd0-c2bd6fb2add7] succeeded in 31.836356118s: None
+[2018-05-22 14:51:01,707: INFO/MainProcess] Received task: scanner.tasks.task_masscan[8f00504f-787d-4d8e-95ac-6072d71299f1]  
+[2018-05-22 14:51:26,653: ERROR/MainProcess] [masscan_scan] reason=CalledProcessError()
+[2018-05-22 14:51:26,654: INFO/MainProcess] Task scanner.tasks.task_masscan[c73ccb30-2743-4d86-8e2f-7e268088eedd] succeeded in 56.795510106s: None
+[2018-05-22 14:51:26,655: ERROR/MainProcess] [masscan_scan] reason=CalledProcessError()
+[2018-05-22 14:51:26,656: INFO/MainProcess] Task scanner.tasks.task_masscan[b6632a60-0584-40ea-8cfd-2d781e98fa36] succeeded in 56.790696866s: None
+[2018-05-22 14:51:26,657: INFO/MainProcess] Received task: scanner.tasks.task_masscan[5a8ba4b0-1ae1-45d1-8606-3a9b2de28afb]  
+[2018-05-22 14:51:26,660: WARNING/MainProcess] Substantial drift from worker@uuqkn may mean clocks are out of sync.  Current drift is
+347 seconds.  [orig: 2018-05-22 14:51:26.660170 recv: 2018-05-22 14:45:39.380421]
+
+[2018-05-22 14:51:26,724: ERROR/MainProcess] [masscan_scan] reason=CalledProcessError()
+[2018-05-22 14:51:26,725: INFO/MainProcess] Task scanner.tasks.task_masscan[06c70151-cb85-4e59-8a06-cd777850ba6b] succeeded in 56.86958687s: None
+[2018-05-22 14:51:26,726: ERROR/MainProcess] [masscan_scan] reason=CalledProcessError()
+[2018-05-22 14:51:26,726: INFO/MainProcess] Task scanner.tasks.task_masscan[a16c66b9-f13c-429d-930b-964c29b81b96] succeeded in 25.018864217s: None
+[2018-05-22 14:52:01,658: ERROR/MainProcess] [masscan_scan] reason=CalledProcessError()
+[2018-05-22 14:52:01,658: INFO/MainProcess] Task scanner.tasks.task_masscan[5a8ba4b0-1ae1-45d1-8606-3a9b2de28afb] succeeded in 34.935964951s: None
+[2018-05-22 14:52:02,898: ERROR/MainProcess] [masscan_scan] reason=CalledProcessError()
+[2018-05-22 14:52:02,898: INFO/MainProcess] Task scanner.tasks.task_masscan[8f00504f-787d-4d8e-95ac-6072d71299f1] succeeded in 36.178006602s: None

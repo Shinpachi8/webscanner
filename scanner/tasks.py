@@ -115,7 +115,7 @@ def nmap_scan(id_domain):
     
     portqueue=list(portqueue)
 
-    nmap_work(ipportqueue, id_domain)
+    nmap_work(portqueue, id_domain)
 
 
 @shared_task(time_limit=600)

@@ -154,8 +154,9 @@ CELERY_TIMEZONE = TIME_ZONE
 # default_exchange = Exchange('default', type='direct')
 # priority_exchange = Exchange('ipscan', type='direct')
 # set celery default queue
-CELERY_DEFAULT_QUEUE = "default"
-CELERY_DEFAULT_EXCHANGE = 'default'
+# task_default_queue
+CELERY_TASK_DEFAULT_QUEUE = "default"
+# CELERY_DEFAULT_EXCHANGE = 'default'
 CELERY_DEFAULT_ROUTING_KEY = 'default'
 # set celery queues
 CELERY_QUEUES = (    #set queue, bind routing_key

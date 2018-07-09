@@ -29,4 +29,5 @@ urlpatterns = [
     url(r'^guesscms$', views.guesscms, name="guesscms"),
     url(r'^encode$', views.encode, name="encode"),
     url(r'^search$', views.search, name="search"),
+    url(r'^portcrack$', views.search, name="portcrack"),
 ]

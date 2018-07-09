@@ -161,7 +161,8 @@ CELERY_DEFAULT_ROUTING_KEY = 'default'
 # set celery queues
 CELERY_QUEUES = (    #set queue, bind routing_key
     Queue('ipscan', routing_key='ipscan.#'),
-    Queue('default', binding_key='default')
+    Queue('default', binding_key='default'),
+    Queue('ipscanmanager', routing_key='ipscanmanager.#'),
     # Queue('vulnscan', routing_key='vulnscan'),
 )
 
@@ -174,5 +175,13 @@ CELERY_TASK_ROUTES = ({  #put task into queue and bind the routing_key
     'scanner.tasks.nmap_scan': { 
         'queue': 'ipscan',
         'routing_key': 'ipscan.nmap',
+    },
+    'scanner.tasks.nmap_scan2': { 
+        'queue': 'ipscanmanager',
+        'routing_key': 'ipscanmanager.nmap2',
+    },
+    'scanner.tasks.nmap_scan3': { 
+        'queue': 'ipscanmanager',
+        'routing_key': 'ipscanmanager.nmap3',
     }
 })

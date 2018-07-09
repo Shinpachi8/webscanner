@@ -38,9 +38,6 @@ def create_to_database(ip_cidr, id_domain):
 
         
 
-
-
-
 @shared_task(routing_key='ipscan.masscan')
 def task_masscan(ip_cidr, id_domain, port=None):
     """
@@ -87,8 +84,25 @@ def task_masscan(ip_cidr, id_domain, port=None):
 
 
 
+@shared_task(routing_key='ipscan.nmap2')
+def nmap_scan2(ip_cidr, id_domain):
+    ip_cidr = IPNetwork(ip_cidr)
+    for ip in ip_cidr:
+        ip = str(ip)
+        nmap_scan.delay(ip, id_domain)
+
+
+@shared_task(routing_key='ipscan.nmap3')
+def nmap_scan3(id_domain):
+    ipobjs = PortTable.objects.values("ip").filter(id_domain=id_domain).distinct()
+    id_domain = int(id_domain)
+    for ip in objs:
+        ip = ip['ip']
+        nmap_scan.delay(ip, id_domain)
+
+
 @shared_task(routing_key='ipscan.nmap')
-def nmap_scan(id_domain):
+def nmap_scan(ip, id_domain):
     """
     (host          0;
     hostname       1;
@@ -106,16 +120,16 @@ def nmap_scan(id_domain):
     """
     #resultqueue = Queue()
     #nmap_work(ipportqueue, resultqueue, id_domain)
-    portobjs = PortTable.objects.filter(id_domain=id_domain)
-    portqueue = set()
-    id_domain = int(id_domain)
-    for obj in portobjs:
-        o = (obj.ip, obj.port)
-        portqueue.add(o)
+    # portobjs = PortTable.objects.filter(id_domain=id_domain)
+    # portqueue = set()
+    # id_domain = int(id_domain)
+    # for obj in portobjs:
+    #     o = (obj.ip, obj.port)
+    #     portqueue.add(o)
     
-    portqueue=list(portqueue)
-
-    nmap_work(portqueue, id_domain)
+    # portqueue=list(portqueue)
+    
+    nmap_work(ip, id_domain)
 
 
 @shared_task(time_limit=600)
@@ -194,6 +208,39 @@ def CMSGuess(id_domain, isip):
             urlqueue.put(_x)
     cms_guess(urlqueue)
 
+
+@shared_task
+def portCrack(id_domain):
+    sql = "select port,ip,service from port_table where id_domain={} and service in ('ftp', 'mysql', 'mssql', 'redis', 'vnc', 'ssh', 'postgres','rdp', 'telnet')"
+    
+    insert_vul_sql = "insert into vulns (url, vuln_name, severity, proof, id_domain) values ('{}', 'WeakPassword', 'High', '{}', '{}')"
+    conn = MySQLUtils()
+    try:
+        data = conn.fetchall(sql.format(id_domain))
+        conn.close()
+        # queue, result_queue = Queue(), Queue()
+        for item in data:
+            # port, ip, service = item
+            try:
+                vul_list = crackWork(item)
+                if vul_list:
+                    t_conn = MySQLUtils()
+                    for i in vul_list:
+                        t_conn.insert(insert_vul_sql.format(i, i, id_domain))
+                    t_conn.close()
+            except:
+                pass
+        
+        # crackWork(queue, result_queue)
+        # save to database
+    except Exception as e:
+        logger.error('[portCrack] error: {}'.format(repr(e)))
+    finally:
+        try:
+            conn.close()
+        except:
+            pass
+        
 
 
 if __name__ == '__main__':

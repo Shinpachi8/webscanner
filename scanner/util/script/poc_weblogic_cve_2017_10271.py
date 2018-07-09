@@ -57,7 +57,7 @@ def verify(ip, port=80, name='', timeout=10):
                 except urllib2.URLError:
                     pass
                 sleep(2)
-                dnslog = 'http://dnslog.niufuren.cc/api/dns/devil/{}/'.format(test_str)
+                dnslog = 'http://dnslog.yoyostay.top/api/dns/devil/{}/'.format(test_str)
                 check_result = urllib2.urlopen(dnslog, timeout=timeout).read()
                 if "True" in check_result:
                     info = {

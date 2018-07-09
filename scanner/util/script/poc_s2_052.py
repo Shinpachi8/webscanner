@@ -38,7 +38,7 @@ def verify(ip, port=80, name=None, timeout=10):
         except Exception, e:
             if e.code == 500:
                 time.sleep(2)
-                check = urllib2.urlopen("http://dnslog.niufuren.cc/api/dns/devil/%s/" % (test_str), timeout=timeout).read()
+                check = urllib2.urlopen("http://dnslog.yoyostay.top/api/dns/devil/%s/" % (test_str), timeout=timeout).read()
                 if "True" in check:
                     info = {
                         "url": url,

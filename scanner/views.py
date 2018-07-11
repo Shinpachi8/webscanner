@@ -342,7 +342,8 @@ def search(request):
 
     print domain, name, cmstype, title
 
-    objs = PortTable.objects.filter(Q(name__icontains=name)&Q(cmstype__icontains=cmstype)&Q(httptitle__icontains=title)&Q(id_domain__icontains=id_domain)).values('id_domain', 'ip', 'port', 'httptitle', 'cmstype', 'name')
+    #objs = PortTable.objects.filter(Q(name__icontains=name)&Q(cmstype__icontains=cmstype)&Q(httptitle__icontains=title)&Q(id_domain__icontains=id_domain)).values('id_domain', 'ip', 'port', 'httptitle', 'cmstype', 'name')
+    objs = PortTable.objects.filter(Q(cmstype__icontains=cmstype)|(Q(httptitle__icontains=title)&Q(id_domain__icontains=id_domain))).values('id_domain', 'ip', 'port', 'httptitle', 'cmstype', 'name')
     print objs
     #objs = PortTable.objects.filter(name__icontains=name).filter(cmstype__icontains=cmstype)\
     #    .filter(httptitle__icontains=title)

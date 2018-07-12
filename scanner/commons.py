@@ -1514,7 +1514,7 @@ def is_http(url, port=None):
     if port is None: port = 80
     service = ''
     try:
-        conn = httplib.HTTPConnection(url, port, timeout=10)
+        conn = httplib.HTTPConnection(url, int(port), timeout=10)
         conn.request('HEAD', '/')
         conn.close()
         service = 'http'
@@ -1532,7 +1532,7 @@ def is_https(url, port=None):
     if port is None: port = 443
     service = ''
     try:
-        conn = httplib.HTTPSConnection(url, port, timeout=10)
+        conn = httplib.HTTPSConnection(url, int(port), timeout=10)
         conn.request('HEAD', '/')
         conn.close()
         service = 'https'

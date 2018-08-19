@@ -4,9 +4,13 @@ import urllib2
 from config import is_port_open, is_http
 
 
-@is_port_open
-def verify(host, port=80, name=10, timeout=10):
-    url = "http://%s:%d" % (host, int(port))
+# @is_port_open
+def verify(host, port=80, name=10, timeout=10, types='ip'):
+    if types == 'ip':
+        url = "http://%s:%d" % (host, int(port))
+    else:
+        url = 'http://{}'.format(host)
+
     error_i = 0
     flag_list = ['<th>Resin home:</th>', 'The Resin version', 'Resin Summary']
     user_list = ['admin']
@@ -19,8 +23,6 @@ def verify(host, port=80, name=10, timeout=10):
         "severity": "high",
         "proof": ""
     }
-    if is_http(host, int(port)) is False:
-        return
     for user in user_list:
         for password in PASSWORD_DIC:
             try:
@@ -35,6 +37,8 @@ def verify(host, port=80, name=10, timeout=10):
                 if error_i >= 3:
                     return
                 continue
+            except Exception as e:
+                return 
             for flag in flag_list:
                 if flag in res_html or int(res_code) == 408:
                     # info = u'%s/resin-admin 存在弱口令 用户名：%s，密码：%s' % (url, user, password)

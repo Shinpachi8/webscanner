@@ -26,9 +26,12 @@ def ip2hostname(ip):
         pass
 
 
-@is_port_open
-def verify(ip,port=445, name="", timeout=10):
-    if int(port) not in ["445", "389"] or "smb" not in name.lower():
+# @is_port_open
+def verify(ip,port=445, name="", timeout=10, types='ip'):
+    if types != 'ip':
+        return
+    
+    if name.find('smb') == -1:
         return
     socket.setdefaulttimeout(timeout)
     user_list = ['administrator']

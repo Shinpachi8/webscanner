@@ -6,16 +6,14 @@ from config import is_port_open, is_http
 
 
 
-@is_port_open
-def verify(ip, port=80, name=None, timeout=10):
+# @is_port_open
+def verify(ip, port=80, name=None, timeout=10, types='ip'):
     info = {
         "url": "http://{}:{}".format(ip, port),
         "severity": "high",
         "proof": "http://{}:{}/vultest.txt".format(ip, port),
         "vuln_name": "iis webdav"
     }
-    if is_http(ip, int(port)) is False:
-        return
     try:
         socket.setdefaulttimeout(timeout)
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

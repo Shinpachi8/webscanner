@@ -3,10 +3,8 @@ import socket
 from config import is_port_open, is_http
 
 
-@is_port_open
-def verify(ip, port=80, name=None, timeout=10):
-    if is_http(ip, int(port)) is False:
-        return
+# @is_port_open
+def verify(ip, port=80, name=None, timeout=10, types='ip'):
     info = {
         "url": "http://{}:{}".format(ip, port),
         "vuln_name": "jetty referer info leak",

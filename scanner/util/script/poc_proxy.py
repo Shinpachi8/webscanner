@@ -5,7 +5,10 @@
 
 import requests
 
-def verify(ip, port=80, name=None, timeout=15):
+def verify(ip, port=80, name=None, timeout=15, types='ip'):
+    if types != 'ip':
+        return
+    
     proxy = {'http': 'http://{}:{}'.format(ip, port), 
             'http': 'https://{}:{}'.format(ip, port)}
 

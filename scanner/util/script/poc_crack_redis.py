@@ -3,8 +3,11 @@ import socket
 from config import is_port_open
 
 
-@is_port_open
-def verify(ip, port=6379, name='', timeout=10):
+# @is_port_open
+def verify(ip, port=6379, name='', timeout=10, types='ip'):
+    if types != 'ip':
+        return
+    
     info = {
         "url": "redis://{}:{}".format(ip, port),
         "vuln_name": "redis weak password",

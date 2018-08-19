@@ -128,9 +128,9 @@ class RsyncWeakCheck(object):
             return 0
 
 
-@is_port_open
-def verify(host, port=873, name='', timeout=5):
-    if int(port) != 873 or 'rsync' not in name:
+# @is_port_open
+def verify(host, port=873, name='', timeout=5, types='ip'):
+    if types != 'ip':
         return
     # info = ''
     not_unauth_list = []

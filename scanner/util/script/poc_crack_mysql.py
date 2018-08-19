@@ -44,8 +44,11 @@ def get_auth_data(user, password, scramble, plugin):
     return binascii.a2b_hex(auth_data)
 
 
-@is_port_open
-def verify(ip, port=3306, name='', timeout=10):
+# @is_port_open
+def verify(ip, port=3306, name='', timeout=10, types='ip'):
+    if types != 'ip':
+        return
+    
     if int(port) != 3306 or "mysql" not in name.lower():
         return
     socket.setdefaulttimeout(timeout)

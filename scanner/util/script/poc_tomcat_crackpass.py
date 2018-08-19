@@ -5,10 +5,14 @@ import base64
 from config import is_port_open, is_http
 
 
-@is_port_open
-def verify(ip, port=80, name='', timeout=10):
-    if is_http(ip, int(port)) is False:
-        return
+# @is_port_open
+def verify(ip, port=80, name='', timeout=10, types='ip'):
+
+    if types == 'ip':
+        url = ip + ':' + str(port)
+    else:
+        url = ip
+
     error_i = 0
     flag_list = ['/manager/html/reload', 'Tomcat Web Application Manager']
     user_list = ['admin', 'manager', 'tomcat', 'apache', 'root']
@@ -17,7 +21,7 @@ def verify(ip, port=80, name='', timeout=10):
         for pass_ in PASSWORD_DIC:
             try:
                 pass_ = str(pass_.replace('{user}', user))
-                login_url = 'http://' + ip + ":" + str(port) + '/manager/html'
+                login_url = 'http://' + url + '/manager/html'
                 request = urllib2.Request(login_url)
                 auth_str_temp = user + ':' + pass_
                 auth_str = base64.b64encode(auth_str_temp)
@@ -32,6 +36,8 @@ def verify(ip, port=80, name='', timeout=10):
                 error_i += 1
                 if error_i >= 3: return
                 continue
+            except Exception as e:
+                return
             if int(res_code) == 404: return
             if int(res_code) == 401 or int(res_code) == 403: continue
             for flag in flag_list:

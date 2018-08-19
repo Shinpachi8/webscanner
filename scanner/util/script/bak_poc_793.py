@@ -49,7 +49,7 @@ def grab(plugin,host,port):
                 'severity': 'high',
                 'proof': '/_plugin/{}/../../../../../{}'.format(plugin, fpath),
                 }
-        security_hole('CVE-2015-3337')
+        # security_hole('CVE-2015-3337')
         return info
 if __name__ == '__main__':
     from dummy import *

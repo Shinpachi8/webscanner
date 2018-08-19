@@ -34,16 +34,23 @@ def send_socket(host, port, timeout, waittime=1, payload=''):
     return res
 
 
-@is_port_open
-def verify(host, port=9090, name=None):
+# @is_port_open
+def verify(host, port=9090, name=None, types='ip'):
+    if types != 'ip':
+        return
+
     info = {
         "url" : "http://{}:{}".format(host,port),
         "vuln_name" : "fastcgi_rce",
-        "severity" : "high"
+        "severity" : "high",
+        'proof': 'poc_fastcgi_rce'
     }
-    res = send_socket(host, port, timeout=5, waittime=0, payload=poc_payload)
-    if ':root:' in res:
-        return (True, info)
+    try:
+        res = send_socket(host, port, timeout=5, waittime=0, payload=poc_payload)
+        if ':root:' in res:
+            return info
+    except Exception as e:
+        return False
     return False
 
 

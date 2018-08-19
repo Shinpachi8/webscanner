@@ -4,8 +4,11 @@ import binascii
 from config import is_port_open
 
 
-@is_port_open
-def verify(ip, port=27017, name='', timeout=10):
+# @is_port_open
+def verify(ip, port=27017, name='', timeout=10, types='ip'):
+    if types !='ip':
+        return
+        
     if int(port) != 27017 or "mongo" not in name:
         return
     try:

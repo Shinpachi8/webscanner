@@ -3,6 +3,7 @@
 
 import sys
 import os
+import json
 from netaddr import *
 from Queue import Queue
 from celery import shared_task
@@ -84,6 +85,36 @@ def task_masscan(ip_cidr, id_domain, port=None):
 
 
 
+
+@shared_task
+def save_masscan_result_to_porttable(content, id_domain):
+    pattern = re.compile(r'.*ip:\s+\"(.*?)\",.*port:(.*?),.*')
+    print content
+    for line in content:
+        s = pattern.findall(line.strip())
+        for p in s:
+            try:
+                ip = p[0].strip()
+                port = str(p[1]).strip()
+                # exists
+                # print "ip={} &&&& port={}".format(ip, port)
+                if PortTable.objects.filter(id_domain=id_domain).filter(ip=ip).filter(port=port).exists():
+                    obj = PortTable.objects.filter(id_domain=id_domain).filter(ip=ip).filter(port=port).first()
+                    obj.save()
+                else:
+                    obj = PortTable(
+                        id_domain=id_domain,
+                        ip = ip,
+                        port = port,
+                        protocol = 'tcp'
+                    )
+                    obj.save()
+            except Exception as e:
+                print "save_masscan_result_to_porttable error: {}".format(repr(e))
+        
+            
+
+
 @shared_task(routing_key='ipscan.nmap2')
 def nmap_scan2(ip_cidr, id_domain):
     ip_cidr = IPNetwork(ip_cidr)
@@ -102,7 +133,7 @@ def nmap_scan3(id_domain):
 
 
 @shared_task(routing_key='ipscan.nmap')
-def nmap_scan(ip, id_domain):
+def nmap_scan(ip, id_domain, port=None):
     """
     (host          0;
     hostname       1;
@@ -129,7 +160,7 @@ def nmap_scan(ip, id_domain):
     
     # portqueue=list(portqueue)
     
-    nmap_work(ip, id_domain)
+    nmap_work(ip, id_domain, port=port)
 
 
 @shared_task(time_limit=600)
@@ -145,9 +176,7 @@ def sensitivescan(ip, port, id_domain):
         else:
             return
         url = "{}://{}:{}".format(scheme, ip, port)
-        scanobj = InfoLeakScan(url)
-        scanobj.scan()
-        result = scanobj.result
+        result = SensitiveScan(url)
         count = 0
         print "[sensitive_task] [url={}] [result.qsize] = {}".format(url, result.qsize())
         insert_vuln_sql = 'insert into vulns (id_domain, url, vuln_name, severity) values ("{id_domain}", "{url}", "{vuln_name}", "{severity}")'
@@ -156,8 +185,24 @@ def sensitivescan(ip, port, id_domain):
                 result.queue.clear()
                 break
             url = result.get()
+            url = url['url']
+            md5 = get_md5(url)
             vuln_name = "sensitive infomation"
-            save2sql(insert_vuln_sql.format(id_domain=id_domain, url=pymysql.escape_string(url), vuln_name=pymysql.escape_string(vuln_name), severity='low'))
+            vulobj = Vulns.objects.filter(id_domain=int(id_domain)).filter(md5=md5).first()
+            if vulobj:
+                vulobj.save()
+            else:
+                vulobj = Vulns(
+                    id_domain = id_domain,
+                    url=pymysql.escape_string(url),
+                    vuln_name = pymysql.escape_string(vuln_name),
+                    severity= 'low',
+                    md5 = md5,
+                )
+
+                vulobj.save()
+            
+            # save2sql(insert_vuln_sql.format(id_domain=id_domain, url=pymysql.escape_string(url), vuln_name=pymysql.escape_string(vuln_name), severity='low'))
             # save_vuln_to_db(id_domain, url, vuln_name, severity="low")
             count += 1
     except Exception as e:
@@ -166,19 +211,30 @@ def sensitivescan(ip, port, id_domain):
 
 
 
-@shared_task(time_limit=3000)
-def pocverify(id_domain):
+# @shared_task(time_limit=5400)
+@shared_task
+def pocverify(id_domain, types='ip'):
     """
     this is aim to use script to scan th ip address to detect
     like unauth or ms17_10 vulnerability
     :param: ipcidr like 127.0.0.1/24
     :rtype: None
     """
-    portobjs = PortTable.objects.filter(id_domain=id_domain).values_list('ip', 'port', 'name', 'cmstype')
-    urlqueue = Queue()
-    for obj in portobjs[:200]:
-        urlqueue.put(obj)
-    pocscan(urlqueue)
+    if types == 'ip':
+        portobjs = PortTable.objects.filter(id_domain=id_domain).values_list('ip', 'port', 'name', 'cmstype')
+        urlqueue = Queue()
+        for obj in portobjs[:200]:
+            urlqueue.put(obj)
+        pocscan(urlqueue, types='ip', id_domain=id_domain)
+    elif types == 'url':
+        urlqueu2 = Queue()
+        domainobjs = Subdomains.objects.filter(id_domain=id_domain)
+        for obj in domainobjs.iterator():
+            urlqueu2.put([obj.subdomain, id_domain])
+
+        # pocscan(urlqueu2,types='url', id_domain=id_domain)
+    else:
+        return
 
 @shared_task(time_limit=6000)
 def get_title(portobjlist):

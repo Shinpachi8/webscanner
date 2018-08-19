@@ -4,11 +4,15 @@ import urllib2
 from config import is_port_open, is_http
 
 
-@is_port_open
-def verify(ip, port=80, name=None, timeout=10):
-    if is_http(ip, int(port)) is False:
-        return
-    url = "http://%s:%s/login" %(ip, str(port))
+# @is_port_open
+def verify(ip, port=80, name=None, timeout=10, types='ip'):
+    # if is_http(ip, int(port)) is False:
+    #     return
+    if types == 'ip':
+        url = "http://%s:%s/login" %(ip, str(port))
+    else:
+        url = 'http://{}'.format(ip)
+    
     header={
         'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.96 Safari/537.36',
         'ContentType': 'application/x-www-form-urlencoded; chartset=UTF-8',

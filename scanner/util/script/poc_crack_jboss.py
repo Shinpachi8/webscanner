@@ -6,9 +6,13 @@ import urllib2
 from config import is_port_open, is_http
 
 
-@is_port_open
-def verify(host, port=80, name="jboss", timeout=10):
-    url = "http://%s:%d" % (host, int(port))
+# @is_port_open
+def verify(host, port=80, name="jboss", timeout=10,  types='ip'):
+    if types == 'ip':
+        url = "http://%s:%d" % (host, int(port))
+    else:
+        url = 'http://{}'.format(host)
+    
     info = {
         "url": "",
         "vuln_name": "jboss weak password",
@@ -16,8 +20,7 @@ def verify(host, port=80, name="jboss", timeout=10):
         "severity": "high"
     }
     error_i = 0
-    if is_http(host, int(port)) is False:
-        return
+
     flag_list = ['>jboss.j2ee</a>','JBoss JMX Management Console','HtmlAdaptor?action=displayMBeans','<title>JBoss Management']
     user_list = ['admin', 'manager', 'jboss', 'root']
     PASSWORD_DIC = ['admin', 'jboss', '123456', 'manager']
@@ -40,6 +43,8 @@ def verify(host, port=80, name="jboss", timeout=10):
                 if error_i >= 3:
                     return
                 continue
+            except Exception as e:
+                return
             if int(res_code) == 404:
                 break
             if int(res_code) == 401:

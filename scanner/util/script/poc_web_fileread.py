@@ -5,11 +5,12 @@ from config import is_port_open, is_http
 
 
 
-@is_port_open
-def verify(ip, port=80, name='', timeout=10):
-    if is_http(ip, int(port)) is False:
-        return
+# @is_port_open
+def verify(ip, port=80, name='', timeout=10, types='ip'):
     try:
+        if types !='ip':
+            return
+        
         socket.setdefaulttimeout(timeout)
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((ip, int(port)))

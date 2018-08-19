@@ -4,7 +4,7 @@ import binascii
 import time
 
 
-def verify(ip, port=1099, name=None, timeout=10):
+def verify(ip, port=1099, name=None, timeout=10, types='ip'):
     info = {
         "url": "RMI://{}:{}".format(ip, port),
         "seed": "8888",

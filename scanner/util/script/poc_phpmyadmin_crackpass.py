@@ -4,10 +4,13 @@ import re
 from config import is_port_open, is_http
 
 
-@is_port_open
-def verify(ip, port=80, name=None, timeout=10):
-    if is_http(ip, int(port)) is False:
-        return
+# @is_port_open
+def verify(ip, port=80, name=None, timeout=10, types='ip'):
+
+    if types == 'ip':
+        url = ip + ':' + str(port)
+    else:
+        url = ip
 
     flag_list = ['src="navigation.php', 'frameborder="0" id="frame_content"', 'id="li_server_type">',
                  'class="disableAjax" title=']
@@ -15,7 +18,7 @@ def verify(ip, port=80, name=None, timeout=10):
     PASSWORD_DIC = ['root', 'mysql', 'www', 'bbs', 'admin', '1234root', 'wwwroot', 'backup']
     error_i = 0
     try:
-        res_html = urllib2.urlopen('http://' + ip + ":" + str(port), timeout=timeout).read()
+        res_html = urllib2.urlopen('http://' + url, timeout=timeout).read()
         if 'input_password' in res_html and 'name="token"' in res_html:
             url = 'http://' + ip + ":" + str(port) + "/index.php"
         else:

@@ -4,12 +4,13 @@ import urllib2
 from config import is_port_open, is_http
 
 
-@is_port_open
-def verify(host, port=80, name=None, timeout=10):
-    if is_http(host, int(port)) is False:
-        return
+# @is_port_open
+def verify(host, port=80, name=None, timeout=10, types='ip'):
     try:
-        url = "http://%s:%d" % (host, int(port))
+        if types == 'ip':
+            url = "http://%s:%d" % (host, int(port))
+        else:
+            url = 'http://{}'.format(host)
         res = urllib2.urlopen(url + '/axis2/services/listServices', timeout=timeout)
         res_code = res.code
         res_html = res.read()

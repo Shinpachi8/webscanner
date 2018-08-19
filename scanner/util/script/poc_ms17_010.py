@@ -4,12 +4,16 @@ import binascii
 from config import is_port_open
 
 
-@is_port_open
-def verify(ip, port=445, name='', timeout=10):
+# @is_port_open
+def verify(ip, port=445, name='', timeout=10, types='ip'):
+    if types != 'ip':
+        return
+    
     info = {
         "url": "smb://{}:{}".format(ip, port),
         "vuln_name": "ms17-010 smb stack overflow",
         'severity': 'high',
+        'proof': 'poc_ms17_010'
     }
     negotiate_protocol_request = binascii.unhexlify(
         "00000054ff534d42720000000018012800000000000000000000000000002f4b0000c55e003100024c414e4d414e312e3000024c4d312e325830303200024e54204c414e4d414e20312e3000024e54204c4d20302e313200")

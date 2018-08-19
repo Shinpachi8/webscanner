@@ -83,11 +83,14 @@ DATABASES = {
         # 'ENGINE': 'django.db.backends.sqlite3',
         # 'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'scan',
+        'NAME': 'webscanner',
         'USER': 'root',
         'PASSWORD': '',
         'HOST': '127.0.0.1',
-        'PORT': '3306'
+        'PORT': '3306',
+        'OPTIONS': {
+            "init_command": "SET GLOBAL max_connections = 100000", #<-- The fix
+         }
     }
 }
 
@@ -168,19 +171,19 @@ CELERY_QUEUES = (    #set queue, bind routing_key
 
 
 CELERY_TASK_ROUTES = ({  #put task into queue and bind the routing_key
-    'scanner.tasks.task_masscan': { 
+    'scanner.tasks.task_masscan': {
         'queue': 'ipscan',
         'routing_key': 'ipscan.masscan',
     },
-    'scanner.tasks.nmap_scan': { 
+    'scanner.tasks.nmap_scan': {
         'queue': 'ipscan',
         'routing_key': 'ipscan.nmap',
     },
-    'scanner.tasks.nmap_scan2': { 
+    'scanner.tasks.nmap_scan2': {
         'queue': 'ipscanmanager',
         'routing_key': 'ipscanmanager.nmap2',
     },
-    'scanner.tasks.nmap_scan3': { 
+    'scanner.tasks.nmap_scan3': {
         'queue': 'ipscanmanager',
         'routing_key': 'ipscanmanager.nmap3',
     }

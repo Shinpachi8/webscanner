@@ -5,7 +5,10 @@
 import socket
 
 
-def verify(ip, port=8000, name=''):
+def verify(ip, port=8000, name='', types='ip'):
+    if types != 'ip':
+        return
+    
     handshake = 'JDWP-Handshake'
     info = {
             "url": 'jdwp://{}:{}'.format(ip, port),

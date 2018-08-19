@@ -14,11 +14,8 @@ def random_str(len):
     return str1
 
 
-@is_port_open
-def verify(host, port=80, name=None, timeout=15):
-
-    if is_http(host, int(port)) is False:
-        return
+# @is_port_open
+def verify(host, port=80, name=None, timeout=15, types='ip'):
     info = {
         "url": "http://{}:{}".format(host, port),
         "proof": "",

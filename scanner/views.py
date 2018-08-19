@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 # from django.shortcuts import render
 
 
+import random
 from django.shortcuts import render
 from django.http import Http404
 from django.shortcuts import render_to_response
@@ -19,10 +20,13 @@ from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.core.paginator import Paginator
+from netaddr import IPNetwork
 from cgi import escape
 from tasks import task_masscan, nmap_scan, nmap_scan2, nmap_scan3, get_title, sensitivescan, pocverify, CMSGuess, create_to_database
+from tasks import save_masscan_result_to_porttable
 from models import *
 from commons import *
+
 
 # Create your views here.
 
@@ -56,39 +60,61 @@ def createtask(request):
     id_domain = domain_obj.id
 
 
-    ips = request.POST["ips"]
-    ips = ips.split(",")
+    ips = request.POST.get("ips", '')
     files = request.FILES.get("files", "")
+    filecontent = request.POST.get('filecontent', 'subip')
     ip_cidr = []
     if files:
+        if filecontent == 'subip':
+            content = files.readlines()
+            save_masscan_result_to_porttable.delay(content, id_domain)
+            del files
+        elif filecontent == 'subdomain':
+            content = [i.strip() for i in files.readlines() if i.strip()]
+            for url in content:
+                subdomain_obj, created = Subdomains.objects.get_or_create(
+                    subdomain=url,
+                    id_domain=id_domain,
+                    )
+            del files
+
+
         # deal files for now ,just think it's subdomainsbrtue result
         # file_content = ContentFile(files.read())
-        lines = files.readlines()
-        #print "======"
-        # print domain
-        # print lines[0]
-        urls, iplist = parse_file(lines)
-        for url in urls:
-            subdomain_obj, created = Subdomains.objects.get_or_create(
-                subdomain=url,
-                id_domain=id_domain,
-                )
+    #     lines = files.readlines()
+    #     #print "======"
+    #     # print domain
+    #     # print lines[0]
+    #     urls, iplist = parse_file(lines)
+    #     for url in urls:
+    #         subdomain_obj, created = Subdomains.objects.get_or_create(
+    #             subdomain=url,
+    #             id_domain=id_domain,
+    #             )
 
-        ip_cidr = get_ip_target(iplist)
+    #     ip_cidr = get_ip_target(iplist)
+    if ips:
+        ips = ips.split(",")
+        for i in ips:
+            if i not in ip_cidr:
+                ip_cidr.append(i)
 
-    for i in ips:
-        if i not in ip_cidr:
-            ip_cidr.append(i)
-    
-    # create_to_database.delay(ip_cidr, id_domain)
+        # # create_to_database.delay(ip_cidr, id_domain)
 
-    #print ip_cidr
-    try:
-        for i in ip_cidr:
-            if i:
-                nmap_scan2.delay(i, id_domain)
-    except Exception as e:
-        return Http404("IP CIDRS MUST BE A LIST BOJECTS")
+        # #print ip_cidr
+        # iplist = []
+        try:
+            for i in ip_cidr:
+                if i:
+                    ipnetwork = IPNetwork(i)
+                    for ip in ipnetwork:
+                        iplist.append(ip)
+            random.shuffle(iplist)
+            for ip in iplist:
+                nmap_scan.delay(str(ip), id_domain)
+        #     del iplist
+        except Exception as e:
+            raise Http404("IP CIDRS MUST BE A LIST BOJECTS")
 
     return redirect(reverse("index"))
     # first save it to databases and the use masscan to scan
@@ -96,8 +122,8 @@ def createtask(request):
 
 @login_required(login_url='/login/')
 def showdomainip(request):
-    if "domain" in request.GET:
-        domain = request.GET["domain"]
+    if "domain" in request.POST:
+        domain = request.POST["domain"]
     else:
         domain = None
     if domain:
@@ -105,7 +131,7 @@ def showdomainip(request):
         domain_id = domain_id.id
     else:
         domain_id = 1
-    ip_objects = PortTable.objects.filter(id_domain=domain_id).order_by('id')
+    ip_objects = PortTable.objects.filter(id_domain=domain_id)
     domain_objects = Domain.objects.all()
     # get page
     # split page
@@ -162,10 +188,12 @@ def scandomain(request):
     for s in subdomains:
         #sensitivescan.delay(s.subdomain, id_domain)
         # print "[view] [scandomain] [line160] http={}".format(s.subdomain)
-        sensitivescan.delay(s.subdomain, '80', id_domain)
+        # sensitivescan.delay(s.subdomain, '80', id_domain)
+        pass
+
 
     # second get the ip talbes
-    portobjs = PortTable.objects.filter(Q(id_domain=id_domain),Q(cmstype__icontains='www')|Q(httptitle__isnull=False)).values_list('ip', 'port', 'name')
+    portobjs = PortTable.objects.filter(Q(id_domain=id_domain),Q(cmstype__icontains='www')|Q(httptitle__isnull=False)).values_list('ip', 'port', 'name').iterator()
     iplist = set()
     httplist = []
     for obj in portobjs:
@@ -178,21 +206,13 @@ def scandomain(request):
         #    h = "http://{}:{}".format(ip, port)
         httplist.append((ip, port))
 
-    
-
-
-    # iplist = list(iplist)
-    # ip_cidr = get_ip_target(iplist)
-    # ip_cidr to use script scan
-    # for i in ip_cidr[:2]:
-        # script load and scan
-    #     pocverify.delay(i, id_domain, iscidr=True)
-    # # use infoleak to scan the http service
     for obj in httplist:
     #     # print "[view] [scandomain] [line182] http={}".format(http)
         ip, port = obj
-        sensitivescan.delay(ip, port, id_domain)
-    pocverify.delay(id_domain)
+        # sensitivescan.delay(ip, port, id_domain)
+
+    pocverify.delay(id_domain, types='url')
+    pocverify.delay(id_domain, types='ip')
     return redirect("/")
     # return HttpResponse("httplist={}\nip_cidr={}".format(httplist, ip_cidr))
 
@@ -208,11 +228,29 @@ def nmapscan(request):
     # for obj in portobjs:
     #     o = (obj.ip, obj.port)
     #     portqueue.add(o)
-    
+
     # portqueue=list(portqueue)
 
     #return HttpResponse(str(portqueue))
-    nmap_scan3.delay(domainid)
+    # nmap_scan3.delay(domainid)
+    ipobjs = PortTable.objects.values("ip", "port").filter(id_domain=domainid).iterator()
+    objs = []
+    id_domain = int(domainid)
+    count = 0
+    for obj in ipobjs:
+        ip = obj['ip']
+        port = str(obj['port'])
+        objs.append((ip, port))
+        count += 1
+        if count >= 1000:
+            nmap_scan.delay(objs, id_domain, port=-1)
+            objs = []
+            count = 0
+
+
+    print "total:  {}".format(len(objs))
+    nmap_scan.delay(objs, id_domain, port=-1)
+    del objs
     return redirect("/")
 
 
@@ -226,43 +264,76 @@ def updatehttptitle(request):
     if "id" not in request.GET or (not request.GET["id"].isdigit()):
         return redirect("/")
     id_domain = int(request.GET["id"])
-    portobjs = PortTable.objects.filter(id_domain=id_domain)
+    portobjs = PortTable.objects.filter(id_domain=id_domain).filter(name__icontains='http')
     portobjlist = []
-    for obj in portobjs:
-        o = (obj.id, obj.ip, obj.port)
-        portobjlist.append(o)
+    length = len(portobjs)
+    if length < 100:
+        N = 1
+    else:
+        N = 10
 
-    get_title.delay(portobjlist)
+    if N == 1:
+        for obj in portobjs:
+            o = (obj.id, obj.ip, obj.port)
+            portobjlist.append(o)
+
+        get_title.delay(portobjlist)
+        del portobjlist
+    else:
+        j = length / N
+        k = length % N
+        for i in xrange(0, (N-1)*j, j):
+            tmp = portobjs[i:i+j]
+            task = []
+            for obj in tmp:
+                o = (obj.id, obj.ip, obj.port)
+                task.append(o)
+            get_title.delay(task)
+            del task
+            del tmp
+        task = []
+        for obj in portobjs[(N-1)*j:]:
+            o = (obj.id, obj.ip, obj.port)
+            task.append(o)
+        get_title.delay(task)
+        del task
+        del portobjs
+
     return redirect("/")
 
 
 @login_required(login_url='/login/')
 def showvulns(request):
-    if "id_domain" not in request.GET:
+    if request.method != 'POST':
+        return render(request, 'showdomainip2.html')
+    if "id_domain" not in request.POST:
         id_domain = 1
     else:
         id_domain = request.GET.get('id_domain')
         try:
             id_domain = int(id_domain)
         except:
-            return Http404("param format error")
+            raise Http404("param format error")
 
-    vulnobj = Vulns.objects.filter(id_domain=id_domain).order_by('id')
-    domainobjs = Domain.objects.all()
+    # vulnobj = Vulns.objects.filter(id_domain=id_domain)
+    # domainobjs = Domain.objects.all()
     # get page
     # split page
-    paginator = Paginator(vulnobj, 20)  # 实例化一个分页对象
+    objs = Vulns.objects.filter(Q(id_domain=id_domain)).values('id', 'url', 'parameters', 'vuln_name', 'severity', 'id_domain')
+    return JsonResponse({'result': list(objs)})
 
-    page = request.GET.get('page', '1')  # 获取页码
-    page = int(page)
-    try:
-        vulnobj = paginator.page(page)  # 获取某页对应的记录
-    except PageNotAnInteger:  # 如果页码不是个整数
-        vulnobj = paginator.page(1)  # 取第一页的记录
-    except EmptyPage:  # 如果页码太大，没有相应的记录
-        vulnobj = paginator.page(paginator.num_pages)  # 取最后一页的记录
+    # paginator = Paginator(vulnobj, 20)  # 实例化一个分页对象
 
-    return render(request, 'vulns.html', {'ipobjs': vulnobj, 'domainobjs': domainobjs})
+    # page = request.GET.get('page', '1')  # 获取页码
+    # page = int(page)
+    # try:
+    #     vulnobj = paginator.page(page)  # 获取某页对应的记录
+    # except PageNotAnInteger:  # 如果页码不是个整数
+    #     vulnobj = paginator.page(1)  # 取第一页的记录
+    # except EmptyPage:  # 如果页码太大，没有相应的记录
+    #     vulnobj = paginator.page(paginator.num_pages)  # 取最后一页的记录
+
+    # return render(request, 'vulns.html', {'ipobjs': vulnobj, 'domainobjs': domainobjs})
 
 
 
@@ -272,9 +343,9 @@ def deleteopt(request):
 
     try:
         if "id" not in request.GET or "table" not in request.GET:
-            return Http404("parameter error")
+            raise Http404("parameter error")
         if request.GET["table"] not in ("vulns", "port", "domain"):
-            return Http404("parameter error")
+            raise Http404("parameter error")
         deleteid = int(request.GET["id"])
         table = request.GET["table"]
         if table == "vulns":
@@ -337,13 +408,19 @@ def search(request):
         # if domain has value, then get it id form domain
         id_domain = Domain.objects.get(domain__icontains=domain).id
     else:
-        id_domain = ''
+        id_domain = 1
 
+    objs = PortTable.objects.filter(Q(id_domain=id_domain)).values('id_domain', 'ip', 'port', 'httptitle', 'cmstype', 'name')
+    if title:
+        objs = objs.filter(httptitle__icontains=title)
+    if name:
+        objs = objs.filter(name__icontains=name)
+    if cmstype:
+        objs = objs.filter(cmstype__icontains=cmstype)
 
-    print domain, name, cmstype, title
 
     #objs = PortTable.objects.filter(Q(name__icontains=name)&Q(cmstype__icontains=cmstype)&Q(httptitle__icontains=title)&Q(id_domain__icontains=id_domain)).values('id_domain', 'ip', 'port', 'httptitle', 'cmstype', 'name')
-    objs = PortTable.objects.filter(Q(cmstype__icontains=cmstype)|(Q(httptitle__icontains=title)&Q(id_domain__icontains=id_domain))).values('id_domain', 'ip', 'port', 'httptitle', 'cmstype', 'name')
+    # objs = PortTable.objects.filter(Q(cmstype__icontains=cmstype)|(Q(httptitle__icontains=title)&Q(id_domain=id_domain))).values('id_domain', 'ip', 'port', 'httptitle', 'cmstype', 'name')
     # print objs
     #objs = PortTable.objects.filter(name__icontains=name).filter(cmstype__icontains=cmstype)\
     #    .filter(httptitle__icontains=title)
@@ -355,11 +432,11 @@ def search(request):
 def portcrack(request):
     if 'id_domain' not in request.GET:
         return Http404('param Error')
-    
+
     id_domain = request.GET['id_domain']
     if not id_domain.isdigit():
         return Http404('param Error')
-    
+
     id_domain = int(id_domain)
     portCrack.delay(id_domain)
     return redirect("/")

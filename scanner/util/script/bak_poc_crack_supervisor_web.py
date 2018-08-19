@@ -34,13 +34,15 @@ def check_unauth(url):
     return (None, resp)
 
 
-@is_port_open
-def verify(ip, port=9001, name='', timeout=10):
-    if is_http(ip, int(port)) is False:
-        return
+# @is_port_open
+def verify(ip, port=9001, name='', timeout=10, types='ip'):
+
     user_list = ['user', 'admin', 'manager', 'root']
     PASSWORD_DIC = ['admin', 'user', 'manager', 'root', '{user}123']
-    url = "http://" + ip + ":" + str(port) + "/RPC2"
+    if types == 'ip':
+        url = "http://" + ip + ":" + str(port) + "/RPC2"
+    else:
+        url = 'http://' + ip + '/RPC2'
     retinfo = ""
     info = {
         "url": url,

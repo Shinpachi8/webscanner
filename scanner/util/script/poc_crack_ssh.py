@@ -4,9 +4,12 @@ from config import is_port_open
 paramiko.util.logging.getLogger('paramiko.transport').addHandler(paramiko.util.logging.NullHandler())
 
 
-@is_port_open
-def verify(ip, port=22, name='', timeout=10):
-    if int(port) != 22 or 'ssh' not in name:
+# @is_port_open
+def verify(ip, port=22, name='', timeout=10, types='ip'):
+    if types != 'ip':
+        return
+    
+    if name.find('ssh') == -1:
         return
     user_list = ['root', 'admin', 'oracle', 'weblogic']
     PASSWORD_DIC = ['admin', '123456', '12345', 'root', 'toor', '', '{user}123']

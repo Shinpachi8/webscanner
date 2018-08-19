@@ -44,8 +44,11 @@ def auth(host, port, username, password, timeout):
         pass
 
 
-@is_port_open
-def verify(ip, port=1433, name='', timeout=10):
+# @is_port_open
+def verify(ip, port=1433, name='', timeout=10, types='ip'):
+    if types != 'ip':
+        return
+    
     if int(port) != 1433 or "mssql" not in name:
         return
     user_list = ['sa']

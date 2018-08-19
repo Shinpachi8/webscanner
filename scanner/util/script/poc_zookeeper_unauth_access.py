@@ -3,8 +3,11 @@ import socket
 from config import is_port_open
 
 
-@is_port_open
-def verify(ip, port=2181, name=None, timeout=10):
+# @is_port_open
+def verify(ip, port=2181, name=None, timeout=10, types='ip'):
+    if types != 'ip':
+        return
+    
     try:
         socket.setdefaulttimeout(timeout)
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

@@ -14,11 +14,11 @@ def random_str(len):
     return str1
 
 
-@is_port_open
-def verify(ip, port=80, name=None, timeout=10):
-    if is_http(ip, int(port)) is False:
-        return
+# @is_port_open
+def verify(ip, port=80, name=None, timeout=10, types='ip'):
     try:
+        if types != 'ip':
+            return
         socket.setdefaulttimeout(timeout)
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((ip, port))

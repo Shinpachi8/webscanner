@@ -3,11 +3,14 @@ import base64
 import urllib2
 from config import is_port_open
 
-@is_port_open
-def verify(ip, port=80, name='', timeout=10):
+# @is_port_open
+def verify(ip, port=80, name='', timeout=10, types='ip'):
     # if not is_port_open()
     try:
-        url = 'http://' + ip + ":" + str(port)
+        if types == 'ip':
+            url = 'http://' + ip + ":" + str(port)
+        else:
+            url = 'http://{}'.format(ip)
         res_html = urllib2.urlopen(url, timeout=timeout).read()
         if 'WebResource.axd?d=' in res_html:
             error_i = 0
@@ -42,6 +45,7 @@ def verify(ip, port=80, name='', timeout=10):
                                 "url": url,
                                 'vuln_name': 'MS10-070 ASP.NET Padding Oracle Infoleak',
                                 'severity': 'high',
+                                'proof': 'poc_MS10-070'
                             }
                             return info
                 else:

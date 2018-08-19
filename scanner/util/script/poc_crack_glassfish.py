@@ -4,12 +4,14 @@ import urllib2
 from config import is_port_open, is_http
 
 
-@is_port_open
-def verify(host, port=80, name=None, timeout=10):
+# @is_port_open
+def verify(host, port=80, name=None, timeout=10, types='ip'):
     print "[poc_crack_glassfish] [line 7] [info={}]".format("now we are in this file")
-    if is_http(host, port) is False:
-        return
-    url = "http://%s:%d" % (host, int(port))
+    if types=='ip':
+        url = "http://%s:%d" % (host, int(port))
+    else:
+        url = 'http://{}'.format(host)
+    
     error_i = 0
     flag_list = ['Just refresh the page... login will take over', 'GlassFish Console - Common Tasks',
                  '/resource/common/js/adminjsf.js">', 'Admin Console</title>', 'src="/homePage.jsf"',
@@ -32,6 +34,8 @@ def verify(host, port=80, name=None, timeout=10):
                 if error_i >= 3:
                     return
                 continue
+            except Exception as e:
+                return
             for flag in flag_list:
                 if flag in res_html:
                     info = {

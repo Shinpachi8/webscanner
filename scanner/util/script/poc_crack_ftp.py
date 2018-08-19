@@ -3,11 +3,14 @@ import ftplib
 from config import is_port_open
 
 
-@is_port_open
-def verify(ip, port=21, name="", timeout=10):
-    if int(port) != 21 or "ftp" not in name:
+# @is_port_open
+def verify(ip, port=21, name="", timeout=10, types='ip'):
+    if int(port) != 21 or "ftp" not in name.lower():
         return
 
+    if types != 'ip':
+        return
+    
     user_list = ['ftp', 'www', 'admin', 'root', 'db', 'wwwroot', 'data', 'web']
     PASSWORD_DIC = ['ftp', 'www', 'admin', 'root', 'db', 'wwwroot', 'data', 'web', '123456', '12345678', '']
     for user in user_list:
